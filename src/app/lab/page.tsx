@@ -17,23 +17,14 @@ const prompts = [
   "If you extend the diverging rays backwards, where do they appear to originate?",
   "Compare the object position with the focal point. Could this position change the type of image?",
 ];
-const missions = [
-  "Try to project a sharp image with the object inside the focal length.",
-  "Find a convex-lens configuration with magnification about −1.",
-  "Find two different positions that give equal absolute magnification.",
-  "Approach the focal point from both sides and compare image positions.",
-  "Keep object distance fixed and change focal length across it.",
-  "Compare a concave and convex lens under identical object conditions.",
-  "Use a sharp-screen measurement to infer focal length from u and v.",
-];
-const setupTips = [
-  "Start with a convex lens, a 20 cm focal length, and the object 12 cm from the lens. After the first trial, move the screen and see whether the rays ever meet.",
-  "Keep the convex lens and its focal length fixed. Change only the object distance and look for a magnification near −1.",
-  "Keep the convex lens and its focal length fixed. Compare the magnitude of m at two object positions, including one inside F.",
-  "Keep the convex lens and focal length fixed. Run trials with the object just inside F, exactly at F, and just outside F.",
-  "Keep the object distance fixed. Use two convex focal lengths, one shorter and one longer than the object distance.",
-  "Keep the focal-length magnitude, object distance, and object height fixed. Run one trial with each lens type.",
-  "Use a convex lens with the object outside F. Move the screen until it is sharp, then use the signed object and screen distances to calculate f.",
+const missions: { goal: string; tip: string; settings: Settings }[] = [
+  { goal: "Try to project a sharp image with the object inside the focal length.", tip: "Keep the object 12 cm from the lens. After running the trial, move the screen and look for a sharp image.", settings: bench },
+  { goal: "Find a convex-lens configuration with magnification about −1.", tip: "Keep the lens and focal length fixed. Change only the object distance and look for magnification near −1.", settings: { ...bench, focal: 15, distance: 45, screen: 23 } },
+  { goal: "Find two different positions that give equal absolute magnification.", tip: "Run the starting setup. Then try an object distance inside F and compare the two magnification magnitudes.", settings: { ...bench, focal: 18, distance: 27, screen: 54 } },
+  { goal: "Approach the focal point from both sides and compare image positions.", tip: "Keep f at 25 cm. Try object distances of 24, 25, and 26 cm and compare the results.", settings: { ...bench, focal: 25, distance: 24, screen: 70 } },
+  { goal: "Keep object distance fixed and change focal length across it.", tip: "Leave the object at 24 cm. Record a trial at f = 16 cm, then try f = 32 cm.", settings: { ...bench, focal: 16, distance: 24, screen: 48 } },
+  { goal: "Compare a convex and concave lens under identical object conditions.", tip: "Start with the concave lens. In the second trial, switch only the lens type.", settings: { ...bench, type: "concave", focal: 15, distance: 30, screen: 30 } },
+  { goal: "Use a sharp-screen measurement to infer focal length from u and v.", tip: "Keep the lens and object fixed. Find the sharp screen position and use it with the object distance to calculate f.", settings: { ...bench, focal: 21, distance: 35, screen: 25 } },
 ];
 const predictions: Record<string, string> = { real: "Real image on a screen", virtual: "Virtual image", parallel: "No finite image (parallel rays)" };
 const controls = [
@@ -133,6 +124,7 @@ export default function Lab() {
   const showCompletion = useRef(false);
   const opened = useRef("");
   const elapsed = useStored(() => JSON.stringify(read("lab-time:" + state.session, 0)), 0);
+  const mission = missions[state.mission] ?? missions[0];
   const result = measure(state.settings);
   const finishMessage = !last ? "Run a trial before you finish."
     : !state.transfer.trim() ? "Choose a lens above."
@@ -170,9 +162,23 @@ export default function Lab() {
   function start() {
     setFinishAttempted(false);
     const session = id();
-    write("lab", { ...initial, session, mission: state.mission });
-    track("session_started", session, "lens-bench", "Mission", { mission: state.mission });
+    write("lab", { ...initial, session, mission: state.mission, settings: mission.settings });
+    track("session_started", session, "lens-bench", "Mission", { mission: state.mission, settings: mission.settings });
   }
+  function selectGoal(missionIndex: number) {
+    const selected = missions[missionIndex];
+    if (!selected) return;
+    if (!activeSession) {
+      update({ mission: missionIndex });
+      return;
+    }
+    update({ mission: missionIndex, settings: selected.settings, step: 0, hypothesis: "", prediction: "" });
+    log("investigation_goal_changed", { mission: missionIndex, settings: selected.settings }, null);
+  }
+  const goalSelector = <label>Investigation goal<select value={state.mission} onChange={event => selectGoal(Number(event.target.value))}>
+    {missions.map(({ goal }, i) => <option value={i} key={goal}>{goal}</option>)}
+  </select></label>;
+
   function settings(patch: Partial<Settings>, key: string, value: number | string, record: boolean) {
     update({ settings: { ...state.settings, ...patch } });
     if (record) log("experimental_variable_changed", { variable: key, value, settings: { ...state.settings, ...patch } });
@@ -228,20 +234,20 @@ export default function Lab() {
           <span>24 cm &gt; 12 cm · Real image</span><span>24 cm &lt; 30 cm · Virtual image</span>
         </div>}
         <p><strong>Your takeaway</strong> · {state.reflection}</p><p><Link href="/olympiad?question=c1">Try the related Olympiad question →</Link></p><p><Link href="/analytics">Review investigation evidence →</Link></p></>}
-      {!state.paused && <label>Investigation mission<select value={state.mission} onChange={e => update({ mission: Number(e.target.value) })}>{missions.map((mission, i) => <option value={i} key={mission}>{mission}</option>)}</select></label>}
+      {!state.paused && goalSelector}
       <button className="primary" onClick={() => {
         if (state.paused) { log("session_resumed"); update({ paused: false }); }
         else start();
       }}>{state.paused ? "Resume Investigation" : state.step === 5 ? "Start another investigation" : "Start investigation"}</button>
     </section> : <>
-      <div className="section-head lab-topline"><p><strong>Goal</strong> · {missions[state.mission]}</p><button onClick={() => { log("session_paused", { active_seconds: elapsed }); update({ paused: true }); }}>Pause investigation</button></div>
-      {state.step === 0 ? <section className="panel"><h2>What do you think will happen?</h2><Choice label="Initial hypothesis" value={state.hypothesis} options={hypotheses} onChange={hypothesis => update({ hypothesis })} /><button className="primary" disabled={!state.hypothesis.trim()} onClick={() => update({ step: 1 })}>Explore apparatus</button></section> : <>
+      <div className="section-head lab-topline"><p><strong>Goal</strong> · {mission.goal}</p><button onClick={() => { log("session_paused", { active_seconds: elapsed }); update({ paused: true }); }}>Pause investigation</button></div>
+      {state.step === 0 ? <section className="panel"><h2>What do you think will happen?</h2>{goalSelector}<Choice label="Initial hypothesis" value={state.hypothesis} options={hypotheses} onChange={hypothesis => update({ hypothesis })} /><button className="primary" disabled={!state.hypothesis.trim()} onClick={() => update({ step: 1 })}>Explore apparatus</button></section> : <>
         {state.step < 4 && <div className="lab-grid">
           <section className="panel"><h2>{state.step === 1 ? "Set up the optical bench" : "Optical bench"}</h2><RayBench settings={state.settings} reveal={reveal} />
             {reveal && <dl className="metrics">{[["Image distance", format(result.v, " cm")], ["Image height", format(result.height, " cm")], ["Magnification", format(result.m)]].map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}</dl>}
             <p role="status">{tested ? reveal && result.nature === "parallel" ? "Parallel rays. No finite image distance." : result.sharp ? "Screen aligned. A sharp image is projected." : "No sharp image at this screen position." : ""}</p>
           </section>
-          <section className="panel"><h2>{state.step === 3 ? "Test the screen" : "Bench controls"}</h2>{state.step < 3 && <><p>{setupTips[state.mission]}</p><label>Lens type<select value={state.settings.type} onChange={e => settings({ type: e.target.value as Settings["type"] }, "type", e.target.value, true)}><option value="convex">Convex</option><option value="concave">Concave</option></select></label></>}
+          <section className="panel"><h2>{state.step === 3 ? "Test the screen" : "Bench controls"}</h2>{state.step < 3 && <>{!last && goalSelector}<p>{mission.tip}</p><label>Lens type<select value={state.settings.type} onChange={e => settings({ type: e.target.value as Settings["type"] }, "type", e.target.value, true)}><option value="convex">Convex</option><option value="concave">Concave</option></select></label></>}
           {controls.filter(([key]) => state.step !== 3 || key === "screen").map(([key, name, min, max]) => <div key={key} className="control"><label>{name} (cm)<input type="range" min={min} max={max} step={0.1} value={state.settings[key]} onChange={e => settings({ [key]: +e.target.value }, key, +e.target.value, true)} /></label><DistanceInput label={name} min={min} max={max} value={state.settings[key]} commit={value => settings({ [key]: value }, key, value, true)} /></div>)}
           </section>
         </div>}
