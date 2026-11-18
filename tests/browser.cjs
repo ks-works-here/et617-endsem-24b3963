@@ -191,6 +191,10 @@ async function main() {
     const events = await read("events");
     assert.equal(new Set(events.map(e => e.event_id)).size, events.length);
     assert.equal(events.filter(e => e.event_type === "session_completed").length, 1);
+    const completedSession = events.find(e => e.event_type === "session_completed");
+    const durations = page.getByRole("region", { name: "Investigation durations" });
+    const duration = completedSession.details.active_seconds;
+    await durations.getByRole("row", { name: /Session 1/ }).getByText(`${Math.floor(duration / 60)}m ${duration % 60}s`, { exact: true }).waitFor();
     const exportFiles = [];
     for (const label of ["Export CSV", "Export JSON", "Export experiments"]) {
       const incoming = page.waitForEvent("download");
