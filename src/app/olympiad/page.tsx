@@ -33,7 +33,7 @@ function groupStats(bank: Question[], records: typeof initial.records) {
 export default function Arena() {
   const state = useStored(snapshot, initial);
   const [scope, setScope] = useState("All questions");
-  const [feedback, setFeedback] = useState<{ question: string; text: string[] }>({ question: "", text: [] });
+  const [submitted, setSubmitted] = useState<{ question: string; choice: number } | null>(null);
   const [now, setNow] = useState(0);
   const openedAt = useRef(0);
   const trackedOpen = useRef(false);
@@ -43,6 +43,8 @@ export default function Arena() {
   const record = question ? state.records[question.id] ?? blank : blank;
   const draft = question ? state.drafts[question.id]?.[0] ?? "" : "";
   const selection = /^choice:\d+$/.test(draft) ? Number(draft.slice(7)) : -1;
+  const graded = submitted !== null && submitted.question === question?.id && submitted.choice === selection;
+  const correctChoice = graded && selection === question?.correct;
   const remaining = challenge?.deadline ? Math.max(0, Math.ceil((challenge.deadline - now) / 1000)) : null;
   const update = (patch: Partial<typeof initial>) => write("arena", { ...state, ...patch });
 
@@ -86,7 +88,7 @@ export default function Arena() {
   }
   function open(q: Question) {
     update({ active: q.id });
-    setFeedback({ question: "", text: [] });
+    setSubmitted(null);
     questionEvent("question_opened", q);
     if ((state.records[q.id]?.attempts ?? 0) > 0) questionEvent("question_retried", q);
   }
@@ -113,7 +115,7 @@ export default function Arena() {
     setNow(time);
     const next = { id: id(), mode, queue, index: 0, deadline: mode === modes[1] ? time + 5 * 60_000 : 0, ended: false, correct: [] };
     update({ challenge: next, active: queue[0], drafts: Object.fromEntries(Object.entries(state.drafts).filter(([key]) => !queue.includes(key))) });
-    setFeedback({ question: "", text: [] });
+    setSubmitted(null);
     track("olympiad_challenge_started", next.id, "olympiad", "Arena", { mode, questions: queue });
     questionEvent("question_opened", pool[0], next.id);
   }
@@ -122,7 +124,7 @@ export default function Arena() {
     const index = challenge.index + 1;
     const ended = finish || index >= challenge.queue.length;
     update({ challenge: { ...challenge, index: ended ? challenge.index : index, ended }, active: ended ? "" : challenge.queue[index] });
-    setFeedback({ question: "", text: [] });
+    setSubmitted(null);
     if (ended) track("olympiad_challenge_completed", challenge.id, "olympiad", "Arena", { mode: challenge.mode, correct: challenge.correct.length, count: challenge.queue.length, status: finish ? "ended early" : "finished" });
     else questionEvent("question_opened", questions.find(q => q.id === challenge.queue[index])!, challenge.id);
   }
@@ -134,7 +136,7 @@ export default function Arena() {
     update({ records: { ...state.records, [question.id]: nextRecord }, ...(running && correct && !challenge.correct.includes(question.id) ? { challenge: { ...challenge, correct: [...challenge.correct, question.id] } } : {}) });
     if (record.attempts > 0) questionEvent("question_retried", question, undefined, { attempt_number: nextRecord.attempts });
     questionEvent("answer_submitted", question, undefined, { response: [question.options[selection]], choice_index: selection, correct, attempt_number: nextRecord.attempts });
-    setFeedback({ question: question.id, text: [correct ? "Correct. Compare your reasoning with the worked solution." : question.feedback?.[selection] ?? "That option does not fit the evidence. Use a hint and try again."] });
+    setSubmitted({ question: question.id, choice: selection });
   }
   const visible = questions.filter(q => (state.category === -1 || q.category === state.category) && (state.level === -1 || q.level === state.level)
     && (scope !== "Bookmarked" || state.records[q.id]?.marked) && (scope !== "Unsolved" || !state.records[q.id]?.solved)
@@ -156,13 +158,17 @@ export default function Arena() {
         <h2>{question.title}</h2><p>{question.prompt}</p>
         {question.diagram && <RayBench settings={question.diagram} reveal={record.revealed && !running} rayCount={question.id === "r1" && (!record.revealed || running) ? 1 : 2} screen={false} />}
         <form onSubmit={e => { e.preventDefault(); submit(); }}>
-          <fieldset className="answer-choices"><legend>Choose one answer</legend>{question.options.map((option, i) => <label className="radio" key={option}>
-            <input required type="radio" name={question.id} checked={selection === i} onChange={() => update({ drafts: { ...state.drafts, [question.id]: [`choice:${i}`] } })} />
+          <fieldset className="answer-choices"><legend>Choose one answer</legend>{question.options.map((option, i) => <label className="radio" data-result={graded && selection === i ? correctChoice ? "correct" : "incorrect" : undefined} key={option}>
+            <input required type="radio" name={question.id} checked={selection === i} onChange={() => {
+              setSubmitted(null);
+              update({ drafts: { ...state.drafts, [question.id]: [`choice:${i}`] } });
+            }} />
             <span>{option}</span>
+            {graded && selection === i && <strong className="answer-mark" role="status"><span aria-hidden="true">{correctChoice ? "✓ " : "✕ "}</span>{correctChoice ? "Correct" : "Incorrect"}</strong>}
           </label>)}</fieldset>
           <button className="primary" type="submit" disabled={!question.options[selection]}>Submit Answer</button>
         </form>
-        {feedback.question === question.id && <div role="status" className="feedback">{feedback.text.map((line, i) => <p key={i}>{line}</p>)}</div>}
+        {graded && !correctChoice && question.feedback?.[selection] && <small className="answer-tip">{question.feedback[selection]}</small>}
         <div className="actions"><button disabled={record.hints >= question.hints.length} onClick={() => mark("hint_accessed", { hints: record.hints + 1 })}>Next hint ({record.hints}/{question.hints.length})</button><button disabled={running || record.revealed} onClick={() => mark("solution_revealed", { revealed: true })}>Show Solution</button></div>
         {record.hints > 0 && <ol>{question.hints.slice(0, record.hints).map(hint => <li key={hint}>{hint}</li>)}</ol>}
         {!running && record.revealed && <div className="feedback"><h3>Worked solution</h3><ol>{question.solution.map(step => <li key={step}>{step}</li>)}</ol></div>}

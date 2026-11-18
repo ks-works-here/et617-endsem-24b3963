@@ -102,6 +102,11 @@ button[aria-pressed=true] { border-color: var(--accent); }
 .answer-choices .radio { padding: .65rem .85rem; border: 1px solid var(--line); border-radius: .55rem; background: #0b1425; cursor: pointer; }
 .answer-choices .radio:hover, .answer-choices .radio:has(input:checked) { border-color: var(--accent); color: var(--text); }
 .answer-choices .radio:has(input:checked) { background: #211d38; }
+.answer-choices .radio[data-result] { color: var(--text); }
+.answer-choices .radio[data-result="correct"], .result-strip [data-result="correct"] { background: #12352c; border-color: #61d7a5; color: #c4f7dc; }
+.answer-choices .radio[data-result="incorrect"], .result-strip [data-result="incorrect"] { background: #391f2a; border-color: #f48b9e; color: #ffd4dc; }
+.answer-mark { margin-left: auto; font-size: .87rem; }
+.answer-tip { margin-top: .45rem; }
 .feedback { border-left: 2px solid var(--accent); background: #121f33; padding: .7rem 1rem; margin: .75rem 0; }
 .feedback p:last-child { margin-bottom: 0; }
 .table-wrap { overflow-x: auto; }

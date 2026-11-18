@@ -54,9 +54,9 @@ async function main() {
     for (let i = 0; i < 4; i++) await click("Next hint");
     await visible("If you extend the diverging rays backwards, where do they appear to originate?");
     await page.getByLabel("What do the rays and screen tell you?").selectOption("The outgoing rays converge at the image position.");
-    await visible("Check the outgoing ray paths and try another interpretation.");
+    await page.locator('#trial-evidence [data-result="incorrect"]').waitFor();
     await page.getByLabel("What do the rays and screen tell you?").selectOption("The rays diverge and only their backward extensions meet.");
-    await visible("That explanation fits the observed rays.");
+    await page.locator('#trial-evidence [data-result="correct"]').waitFor();
     await click("Open explanation");
     await visible("Trace dashed lines back");
     await click("Try a different setup");
@@ -93,11 +93,13 @@ async function main() {
     const choose = label => page.getByRole("radio", { name: label, exact: true }).check();
     await choose("The screen is too close; the rays already converge on the far side.");
     await click("Submit Answer");
+    await page.locator('.answer-choices [data-result="incorrect"]').getByText("Incorrect", { exact: false }).waitFor();
     await click("Weak Area Revision");
     await click("End challenge");
     await page.getByRole("button", { name: /The elusive screen image/ }).click();
     await choose("The rays diverge; the eye focuses them, while the screen receives no converging bundle.");
     await click("Submit Answer");
+    await page.locator('.answer-choices [data-result="correct"]').getByText("Correct", { exact: false }).waitFor();
     await click("Bookmark");
     await click("Next hint (0/2)");
     await click("Show Solution");

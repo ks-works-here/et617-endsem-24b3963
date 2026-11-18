@@ -206,7 +206,7 @@ export default function Lab() {
       <h2>{state.paused ? "Investigation paused" : state.step === 5 ? "Investigation complete" : "Can you bring the image into focus?"}</h2>
       {state.step === 5 && <><p>{history.length} trials · {history.filter(row => row.supported).length} predictions supported</p>
         {transfers.includes(state.transfer) && <div className="result-strip">
-          <span>{state.transfer === transfers[0] ? "✓ Correct" : "Answer · +12 cm lens"}</span>
+          <span data-result={state.transfer === transfers[0] ? "correct" : "incorrect"}>{state.transfer === transfers[0] ? "✓ Correct" : "✕ Incorrect · +12 cm lens"}</span>
           <span>24 cm &gt; 12 cm · Real image</span><span>24 cm &lt; 30 cm · Virtual image</span>
         </div>}
         <p><strong>Your takeaway</strong> · {state.reflection}</p><p><Link href="/olympiad?question=c1">Try the related Olympiad question →</Link></p><p><Link href="/analytics">Review investigation evidence →</Link></p></>}
@@ -243,7 +243,7 @@ export default function Lab() {
             update({ interpretation });
             if (interpretation) log("interpretation_selected", { interpretation, correct: interpretation === expectedInterpretation });
           }} />
-          {selectedInterpretation && <p role="status">{interpretationCorrect ? "That explanation fits the observed rays." : "Check the outgoing ray paths and try another interpretation."}</p>}
+          {selectedInterpretation && <div className="result-strip" role="status"><span data-result={interpretationCorrect ? "correct" : "incorrect"}>{interpretationCorrect ? "✓ Correct" : "✕ Try again"}</span></div>}
           <div className="actions"><button onClick={() => update({ step: 2 })}>Try a different setup</button><button className="primary" onClick={() => update({ step: 4 })}>What did you learn?</button></div>
         </section>}
         {state.step === 4 && <section className="panel" id="trial-reflection">
