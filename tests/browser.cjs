@@ -162,6 +162,13 @@ async function main() {
     await page.reload();
     await page.getByText(/Challenge complete/).waitFor();
     assert.equal((await read("arena")).records.c1.marked, true);
+    assert.equal(await page.getByRole("heading", { name: "Arena performance" }).count(), 0);
+    await page.getByRole("link", { name: "View challenge results →" }).click();
+    await page.getByRole("heading", { name: "Arena performance" }).waitFor();
+    await page.getByText("Timed Challenge · 0 of 5 correct", { exact: true }).waitFor();
+    await page.getByRole("heading", { name: "By category" }).waitFor();
+    await page.getByRole("link", { name: "← Back to questions" }).click();
+    await page.getByRole("heading", { name: "Olympiad Challenge Arena" }).waitFor();
     await page.getByRole("link", { name: "Analytics", exact: true }).click();
     await page.getByLabel("Filter activity").selectOption("Olympiad Arena");
     await page.getByText(/olympiad answer submitted/).first().waitFor();
