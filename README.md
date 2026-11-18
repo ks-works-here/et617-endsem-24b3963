@@ -16,7 +16,7 @@ Open http://localhost:3000. For a production check, run `npm.cmd run build` and 
 ## Learning experience
 
 - **Laboratory** at `/lab` guides an approximately ten-minute investigation through briefing, apparatus exploration, prediction and trial, interpretation and revision, and transfer and reflection. The bench displays three principal rays where they intersect the drawn aperture, backward extensions for virtual images, and a movable screen. Measurements become available after a trial. The inside-F investigation gates the conceptual explanation behind the learner's interpretation and provides four successive hints.
-- **Olympiad Challenge Arena** at `/olympiad` includes 30 original questions across five categories and three levels, with bookmarks, retries, worked solutions, practice, timed, mixed, and performance-based revision modes. Written responses are assessed against a keyword rubric. The rubric can miss valid alternative wording, so learners can compare their reasoning with the worked solution.
+- **Olympiad Challenge Arena** at `/olympiad` includes 30 original, automatically graded multiple-choice questions across five categories and three levels, with bookmarks, retries, worked solutions, practice, timed, mixed, and performance-based revision modes. Questions include numerical problems, ray diagrams, and assertion–reason choices.
 - **Analytics** at `/analytics` reads recorded hypotheses, trials, revisions, hint usage, session completions, and Arena answers. Expand rows to inspect the full clickstream. Download clickstream CSV or JSON and experiment-history JSON. The export log records requests and record counts. The browser controls where files are saved.
 
 ## Implementation

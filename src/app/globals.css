@@ -59,6 +59,18 @@ pre { font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .question-list button { display: block; text-align: left; width: 100%; margin-bottom: .45rem; }
 button[aria-pressed=true] { border-color: var(--accent); }
 .radio { display: flex; gap: .55rem; align-items: baseline; }
+.lab-hero { padding-block: clamp(1.3rem, 3vw, 2.6rem); }
+.lab-task { border-left: 3px solid var(--accent); }
+.lab-task .section-head { margin: 0 0 .8rem; }
+.theory summary { color: var(--accent); }
+.theory summary small { margin-left: 1rem; }
+.theory[open] summary { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--line); }
+.theory .formula { width: fit-content; padding: .35rem .7rem; margin-top: 1rem; border-radius: .4rem; background: #0b1425; color: var(--accent); font-family: monospace; }
+.ray-legend { display: flex; flex-wrap: wrap; gap: .4rem .9rem; }
+.ray-legend span::before { content: ""; display: inline-block; width: .55em; height: .55em; margin-right: .4em; border-radius: 50%; background-color: currentColor; }
+.answer-choices .radio { padding: .65rem .85rem; border: 1px solid var(--line); border-radius: .55rem; background: #0b1425; cursor: pointer; }
+.answer-choices .radio:hover, .answer-choices .radio:has(input:checked) { border-color: var(--accent); color: var(--text); }
+.answer-choices .radio:has(input:checked) { background: #211d38; }
 .feedback { border-left: 2px solid var(--accent); background: #121f33; padding: .7rem 1rem; margin: .75rem 0; }
 .feedback p:last-child { margin-bottom: 0; }
 .table-wrap { overflow-x: auto; }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { bench, measure, type Settings } from "../optics";
 import RayBench from "../ray-bench";
+import Theory from "./theory";
 import { type Details, getExperimentHistory, id, read, saveExperiment, track, write } from "../store";
 import { useStored } from "../navigation";
 
@@ -25,6 +26,22 @@ const missions = [
   "Keep object distance fixed and change focal length across it.",
   "Compare a concave and convex lens under identical object conditions.",
   "Use a sharp-screen measurement to infer focal length from u and v.",
+];
+const setupTips = [
+  "Start with a convex lens, a 20 cm focal length, and the object 12 cm from the lens. After the first trial, move the screen and see whether the rays ever meet.",
+  "Keep the convex lens and its focal length fixed. Change only the object distance and look for a magnification near −1.",
+  "Keep the convex lens and its focal length fixed. Compare the magnitude of m at two object positions, including one inside F.",
+  "Keep the convex lens and focal length fixed. Run trials with the object just inside F, exactly at F, and just outside F.",
+  "Keep the object distance fixed. Use two convex focal lengths, one shorter and one longer than the object distance.",
+  "Keep the focal-length magnitude, object distance, and object height fixed. Run one trial with each lens type.",
+  "Use a convex lens with the object outside F. Move the screen until it is sharp, then use the signed object and screen distances to calculate f.",
+];
+const stepGuidance = [
+  ["Choose a hypothesis", "Pick the outcome you think the mission will demonstrate. You can change your prediction after setting up the bench."],
+  ["Set up the optical bench", "Use the controls to set up your first trial. When you are ready to record a prediction, select Prepare experiment."],
+  ["Predict, then run the trial", "Select the image type you expect for the current setup. Run the experiment and compare the result with your prediction."],
+  ["Interpret what you saw", "Use the screen and the direction of the outgoing rays to choose an interpretation. Try a hint if you get stuck."],
+  ["Apply the idea to a new setup", "Choose which lens can form a sharp image on a screen, then select a takeaway from your trials."],
 ];
 const controls = [
   ["focal", "Focal length magnitude", 5, 45], ["distance", "Object distance", 3, 100],
@@ -154,9 +171,10 @@ export default function Lab() {
     update({ step: 5 });
   }
 
-  return <main className="shell">
-    <p className="eyebrow">VIRTUAL LABORATORY · ≈ 10 MINUTES</p><h1>Lens bench investigation</h1>
-    <ol className="stepper">{steps.map((step, i) => <li key={step} className={i === state.step ? "current" : ""}>{step}<small>{times[i]}</small></li>)}</ol>
+  return <main className="shell investigation">
+    <header className="hero lab-hero"><p className="eyebrow">VIRTUAL LABORATORY · ≈ 10 MINUTES</p><h1>Lens bench investigation</h1><p>Predict what a lens will do, test it on the bench, and use the rays to explain what you observe.</p></header>
+    <Theory />
+    <ol className="stepper" aria-label="Investigation steps">{steps.map((step, i) => <li key={step} aria-current={i === state.step ? "step" : undefined} className={i === state.step ? "current" : ""}>{step}<small>{times[i]}</small></li>)}</ol>
     {!state.session || state.paused || state.step === 5 ? <section className="panel">
       <h2>{state.paused ? "Investigation paused" : state.step === 5 ? "Investigation complete" : "Can you bring the image into focus?"}</h2>
       {state.step === 5 && <><p>{history.length} trials · {history.filter(row => row.supported).length} predictions supported</p>
@@ -168,7 +186,14 @@ export default function Lab() {
         else start();
       }}>{state.paused ? "Resume Investigation" : state.step === 5 ? "Start another investigation" : "Start investigation"}</button>
     </section> : <>
-      <div className="section-head"><p>{missions[state.mission]}</p><small>Active time {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}</small><button onClick={() => { log("session_paused", { active_seconds: elapsed }); update({ paused: true }); }}>Pause investigation</button></div>
+      <section className="panel lab-task">
+        <div className="section-head"><p className="eyebrow">STEP {state.step + 1} OF {steps.length}</p><small>Active time {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}</small><button onClick={() => { log("session_paused", { active_seconds: elapsed }); update({ paused: true }); }}>Pause investigation</button></div>
+        <h2>{stepGuidance[state.step][0]}</h2><p>{stepGuidance[state.step][1]}</p>
+        <p><strong>Mission</strong> · {missions[state.mission]}</p>
+        {state.step < 3 && <p>{setupTips[state.mission]}</p>}
+        {state.step === 3 && <a href="#trial-evidence">Go to trial evidence ↓</a>}
+        {state.step === 4 && <a href="#trial-reflection">Go to transfer and reflection ↓</a>}
+      </section>
       {state.step === 0 ? <section className="panel"><h2>Mission briefing</h2><p>Choose a hypothesis to test. You can refine it before each run.</p><Choice label="Initial hypothesis" value={state.hypothesis} options={hypotheses} onChange={hypothesis => update({ hypothesis })} /><button className="primary" disabled={!state.hypothesis.trim()} onClick={() => update({ step: 1 })}>Explore apparatus</button></section> : <>
         <div className="lab-grid">
           <section className="panel"><h2>Optical bench</h2><RayBench settings={state.settings} reveal={reveal} />
@@ -181,7 +206,7 @@ export default function Lab() {
         </div>
         {state.step === 1 && <button className="primary" onClick={() => update({ step: 2 })}>Prepare experiment</button>}
         {state.step >= 2 && <section className="panel"><h2>{last ? "Plan the next trial" : "Predict and test"}</h2><Choice label="Hypothesis" value={state.hypothesis} options={hypotheses} onChange={hypothesis => update({ hypothesis })} /><label>Predicted outcome<select value={state.prediction} onChange={e => update({ prediction: e.target.value })}><option value="">Select an outcome</option><option value="real">Real image on a screen</option><option value="virtual">Virtual image</option><option value="parallel">Parallel rays, no finite image</option></select></label><button className="primary" onClick={run}>Run Experiment</button><p role="status">{message}</p></section>}
-        {last && <section className="panel"><h2>Interpret the evidence</h2><p>{last.supported ? "The observation supports your prediction. Which ray behavior explains it?" : "The observation differs from your prediction. Move the screen and compare the outgoing rays."}</p>
+        {last && <section className="panel" id="trial-evidence"><h2>Interpret the evidence</h2><p>{last.supported ? "The observation supports your prediction. Which ray behavior explains it?" : "The observation differs from your prediction. Move the screen and compare the outgoing rays."}</p>
           <p>{failedDemo && !state.explanation ? "The screen stays unfocused at every position." : last.observation}</p>
           {state.hints > 0 && <ol>{(failedDemo ? prompts : ["Compare the outgoing rays with the predicted image.", "Check where the object lies relative to F."]).slice(0, state.hints).map(hint => <li key={hint}>{hint}</li>)}</ol>}
           <div className="actions"><button disabled={state.hints >= (failedDemo ? 4 : 2)} onClick={() => { log("hint_accessed", { hint: state.hints + 1 }); update({ hints: state.hints + 1 }); }}>Next hint</button>
@@ -196,7 +221,7 @@ export default function Lab() {
           <div className="actions"><button onClick={revise}>Save revised hypothesis</button><button onClick={() => update({ step: 4 })}>Go to reflection</button></div>
           <p role="status">{revisionMessage}</p>
         </section>}
-        {state.step === 4 && <section className="panel"><h2>Transfer and reflection</h2><p>Two lenses share an object position of 24 cm. Their focal lengths are +12 cm and +30 cm.</p><Choice label="Which lens can project a sharp image, and why?" value={state.transfer} options={transfers} onChange={transfer => update({ transfer })} /><Choice label="What did your trials demonstrate?" value={state.reflection} options={reflections} onChange={reflection => update({ reflection })} /><button className="primary" disabled={!state.transfer.trim() || !state.reflection.trim()} onClick={finish}>Complete investigation</button></section>}
+        {state.step === 4 && <section className="panel" id="trial-reflection"><h2>Transfer and reflection</h2><p>Two lenses share an object position of 24 cm. Their focal lengths are +12 cm and +30 cm.</p><Choice label="Which lens can project a sharp image, and why?" value={state.transfer} options={transfers} onChange={transfer => update({ transfer })} /><Choice label="What did your trials demonstrate?" value={state.reflection} options={reflections} onChange={reflection => update({ reflection })} /><button className="primary" disabled={!state.transfer.trim() || !state.reflection.trim()} onClick={finish}>Complete investigation</button></section>}
         {history.length > 0 && <section className="panel"><h2>Trial history</h2>{history.map((trial, i) => <details key={trial.id}><summary>Trial {i + 1} · {trial.settings.type} · u = −{trial.settings.distance} cm · |f| = {trial.settings.focal} cm</summary><p>{trial.hypothesis}</p><p>{trial.id === last?.id && failedDemo && !state.explanation ? "Screen stayed unfocused." : trial.observation}</p>{trial.revision && <p>Revision: {trial.revision}</p>}</details>)}</section>}
       </>}
     </>}

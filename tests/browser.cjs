@@ -19,10 +19,23 @@ async function main() {
     const read = key => page.evaluate(key => JSON.parse(localStorage.getItem("optics." + key) || "null"), key);
     await page.goto(base);
     await page.getByRole("link", { name: "Open investigation →" }).click();
+    await page.locator("#lens-theory summary").click();
+    await page.getByRole("heading", { name: "Follow the rays" }).waitFor();
+    await page.locator("#lens-theory summary").click();
     await click("Start investigation");
     await page.getByLabel("Initial hypothesis").selectOption("I expect a real image even inside the focal length.");
     await click("Explore apparatus");
+    await page.getByRole("heading", { name: "Set up the optical bench" }).waitFor();
+    const lensPixels = () => page.locator("canvas").evaluate(canvas => {
+      const context = canvas.getContext("2d");
+      return [35, 145].map(y => context.getImageData(canvas.width / 2 + 12, y, 1, 1).data[2]);
+    });
+    const convexPixels = await lensPixels();
+    assert.ok(convexPixels[1] > convexPixels[0]);
     await page.getByLabel("Lens type").selectOption("concave");
+    await page.getByRole("img", { name: "Partial ray diagram for a concave lens" }).waitFor();
+    const concavePixels = await lensPixels();
+    assert.ok(concavePixels[0] > concavePixels[1]);
     await page.getByLabel("Lens type").selectOption("convex");
     const set = async (label, value) => {
       const field = page.getByLabel(label + " in centimetres");
@@ -69,12 +82,13 @@ async function main() {
     await visible("Your transfer answer matches the evidence. The +12 cm lens forms a real image.");
     await page.getByRole("link", { name: "Try the related Olympiad question →" }).click();
     await page.getByRole("heading", { name: "The elusive screen image" }).waitFor();
-    await page.getByLabel("Your explanation").fill("Because the lens flips the picture.");
+    const choose = label => page.getByRole("radio", { name: label, exact: true }).check();
+    await choose("The screen is too close; the rays already converge on the far side.");
     await click("Submit Answer");
     await click("Weak Area Revision");
     await click("End challenge");
     await page.getByRole("button", { name: /The elusive screen image/ }).click();
-    await page.getByLabel("Your explanation").fill("The rays diverge, their backward extensions meet, and the eye focuses the light itself.");
+    await choose("The rays diverge; the eye focuses them, while the screen receives no converging bundle.");
     await click("Submit Answer");
     await click("Bookmark");
     await click("Next hint (0/2)");
@@ -98,22 +112,23 @@ async function main() {
     await page.getByLabel("Category", { exact: false }).selectOption("-1");
     await page.getByLabel("Difficulty", { exact: false }).selectOption("-1");
     await page.getByRole("button", { name: /An inverted fiducial/ }).click();
-    await page.getByLabel("Signed v").fill("-20 cm");
-    await page.getByLabel("Signed image height").fill("-2 cm");
+    await choose("−20 cm, −2 cm");
     await click("Submit Answer");
-    await visible("Signed v: check the Cartesian sign or image orientation.");
-    await page.getByLabel("Signed v").fill("20 m");
+    await visible("Check the sign of v for a real image.");
+    await choose("+20 m, −2 m");
     await click("Submit Answer");
-    await visible("Signed v: give your answer in cm.");
-    await page.getByLabel("Signed v").fill("60/7 cm");
+    await visible("Check the units in the problem before reporting image distance and height.");
+    await choose("+8.57 cm, −0.86 cm");
     await click("Submit Answer");
-    await visible("Signed v: check the formula, especially the sign between the reciprocal terms.");
-    await page.getByLabel("Signed v").fill("23 cm");
-    await click("Submit Answer");
-    await visible("Signed v: check the substituted values, reciprocal arithmetic, and rounding.");
-    await page.getByLabel("Signed v").fill("20 cm");
+    await visible("Check whether you used the correct relation between the signed reciprocal distances.");
+    await choose("+20 cm, −2 cm");
     await click("Submit Answer");
     assert.equal((await read("arena")).records.n1.solved, true);
+    for (const button of await page.locator(".question-list button").all()) {
+      await button.click();
+      assert.ok(await page.getByRole("radio").count() >= 4);
+      assert.equal(await page.locator(".workspace textarea, .workspace input:not([type=radio])").count(), 0);
+    }
     await click("Mixed Challenge");
     await click("Next question / skip");
     await page.reload();

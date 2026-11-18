@@ -20,28 +20,6 @@ function challengeOrder() {
   return { shuffled, balanced };
 }
 
-function evaluate(q: Question, answers: string[]) {
-  if (q.options) return Number(answers[0]) === q.correct ? [] : ["Reconsider which choice agrees with the ray behavior. Use the first hint to check your reasoning."];
-  if (q.numbers) {
-    const working = answers[q.numbers.length] ?? "";
-    return q.numbers.flatMap((field, i) => {
-      const match = answers[i]?.trim().replace(/[−–]/g, "-").match(/^([+-]?(?:\d+(?:\.\d*)?|\.\d+))(?:\s*\/\s*(\d+(?:\.\d+)?))?\s*([^\d\s].*)?$/);
-      if (!match) return [`${field.label}: enter a number or fraction.`];
-      const unit = (match[3] ?? "").trim().toLowerCase();
-      if (unit !== field.unit) return [`${field.label}: ${field.unit ? `give your answer in ${field.unit}` : "magnification has no unit"}.`];
-      const value = Number(match[1]) / (match[2] ? Number(match[2]) : 1);
-      const close = (a: number, b: number) => Math.abs(a - b) <= Math.max(0.015, 0.005 * Math.abs(b));
-      if (close(value, field.value)) return [];
-      if (close(value, -field.value)) return [`${field.label}: check the Cartesian sign or image orientation.`];
-      if ((field.formulaTrap !== undefined && close(value, field.formulaTrap)) || /1\s*\/\s*f\s*=\s*1\s*\/\s*v\s*\+\s*1\s*\/\s*u/.test(working)) return [`${field.label}: check the formula, especially the sign between the reciprocal terms.`];
-      if (field.unit && [0.01, 0.1, 10, 100].some(factor => close(value, field.value * factor))) return [`${field.label}: check whether you converted the numerical value into ${field.unit}.`];
-      return [`${field.label}: check the substituted values, reciprocal arithmetic, and rounding.`];
-    });
-  }
-  const response = answers[0]?.toLowerCase() ?? "";
-  return q.rubric?.every(rule => rule.test(response)) ? [] : ["Your response may be missing part of the explanation. Use the hint to identify the relevant ray, observation, or relationship and explain how it supports your conclusion."];
-}
-
 function groupStats(bank: Question[], records: typeof initial.records) {
   const entries = bank.map(q => records[q.id] ?? blank);
   const attempted = entries.filter(e => e.attempts > 0).length;
@@ -63,7 +41,8 @@ export default function Arena() {
   const running = !!challenge && !challenge.ended;
   const question = questions.find(q => q.id === state.active);
   const record = question ? state.records[question.id] ?? blank : blank;
-  const answers = question ? state.drafts[question.id] ?? [] : [];
+  const draft = question ? state.drafts[question.id]?.[0] ?? "" : "";
+  const selection = /^choice:\d+$/.test(draft) ? Number(draft.slice(7)) : -1;
   const remaining = challenge?.deadline ? Math.max(0, Math.ceil((challenge.deadline - now) / 1000)) : null;
   const update = (patch: Partial<typeof initial>) => write("arena", { ...state, ...patch });
 
@@ -148,15 +127,14 @@ export default function Arena() {
     else questionEvent("question_opened", questions.find(q => q.id === challenge.queue[index])!, challenge.id);
   }
   function submit() {
-    if (!question || (running && challenge.deadline > 0 && Date.now() >= challenge.deadline)) return;
-    const text = evaluate(question, answers);
-    const correct = text.length === 0;
+    if (!question || !question.options[selection] || (running && challenge.deadline > 0 && Date.now() >= challenge.deadline)) return;
+    const correct = selection === question.correct;
     const seconds = openedAt.current ? (performance.now() - openedAt.current) / 1000 : 0;
     const nextRecord = { ...record, solved: record.solved || correct, attempts: record.attempts + 1, misses: record.misses + Number(!correct), seconds: record.attempts === 0 && seconds > 0 && seconds < 1800 ? [...record.seconds, seconds] : record.seconds };
     update({ records: { ...state.records, [question.id]: nextRecord }, ...(running && correct && !challenge.correct.includes(question.id) ? { challenge: { ...challenge, correct: [...challenge.correct, question.id] } } : {}) });
     if (record.attempts > 0) questionEvent("question_retried", question, undefined, { attempt_number: nextRecord.attempts });
-    questionEvent("answer_submitted", question, undefined, { response: answers, correct, attempt_number: nextRecord.attempts });
-    setFeedback({ question: question.id, text: correct ? [question.rubric ? "Your explanation includes the expected ideas. Compare your reasoning with the worked solution." : "Your answer matches the expected result. Use the worked solution to compare methods."] : text });
+    questionEvent("answer_submitted", question, undefined, { response: [question.options[selection]], choice_index: selection, correct, attempt_number: nextRecord.attempts });
+    setFeedback({ question: question.id, text: [correct ? "Correct. Compare your reasoning with the worked solution." : question.feedback?.[selection] ?? "That option does not fit the evidence. Use a hint and try again."] });
   }
   const visible = questions.filter(q => (state.category === -1 || q.category === state.category) && (state.level === -1 || q.level === state.level)
     && (scope !== "Bookmarked" || state.records[q.id]?.marked) && (scope !== "Unsolved" || !state.records[q.id]?.solved)
@@ -164,11 +142,6 @@ export default function Arena() {
   const stats = groupStats(questions, state.records);
   const seconds = Object.values(state.records).flatMap(r => r.seconds);
   const totalHints = Object.values(state.records).reduce((sum, r) => sum + r.hints, 0);
-  const input = (i: number, value: string) => {
-    if (!question) return;
-    const next = Array.from({ length: Math.max(answers.length, i + 1) }, (_, index) => index === i ? value : answers[index] ?? "");
-    update({ drafts: { ...state.drafts, [question.id]: next } });
-  };
 
   return <main className="shell arena">
     <section className="hero"><p className="eyebrow">CLASS 10 PHYSICS · LENSES</p><h1>Olympiad Challenge Arena</h1><p>Use ray geometry, experimental evidence, and the thin-lens equation to solve 30 original problems.</p></section>
@@ -183,10 +156,11 @@ export default function Arena() {
         <h2>{question.title}</h2><p>{question.prompt}</p>
         {question.diagram && <RayBench settings={question.diagram} reveal={record.revealed && !running} rayCount={question.id === "r1" && (!record.revealed || running) ? 1 : 2} screen={false} />}
         <form onSubmit={e => { e.preventDefault(); submit(); }}>
-          {question.options ? <fieldset><legend>Choose an answer</legend>{question.options.map((option, i) => <label className="radio" key={option}><input required type="radio" name={question.id} checked={answers[0] === String(i)} onChange={() => input(0, String(i))} />{option}</label>)}</fieldset> : question.numbers ? <>
-          {question.numbers.map((field, i) => <label key={field.label}>{field.label}<input required value={answers[i] ?? ""} placeholder={field.unit ? `Include ${field.unit}` : "Number or fraction"} onChange={e => input(i, e.target.value)} /></label>)}
-          <label>Working (optional)<textarea value={answers[question.numbers.length] ?? ""} onChange={e => input(question.numbers!.length, e.target.value)} /></label></> : <label>Your explanation<textarea required value={answers[0] ?? ""} onChange={e => input(0, e.target.value)} /></label>}
-          <button className="primary" type="submit">Submit Answer</button>
+          <fieldset className="answer-choices"><legend>Choose one answer</legend>{question.options.map((option, i) => <label className="radio" key={option}>
+            <input required type="radio" name={question.id} checked={selection === i} onChange={() => update({ drafts: { ...state.drafts, [question.id]: [`choice:${i}`] } })} />
+            <span>{option}</span>
+          </label>)}</fieldset>
+          <button className="primary" type="submit" disabled={!question.options[selection]}>Submit Answer</button>
         </form>
         {feedback.question === question.id && <div role="status" className="feedback">{feedback.text.map((line, i) => <p key={i}>{line}</p>)}</div>}
         <div className="actions"><button disabled={record.hints >= question.hints.length} onClick={() => mark("hint_accessed", { hints: record.hints + 1 })}>Next hint ({record.hints}/{question.hints.length})</button><button disabled={running || record.revealed} onClick={() => mark("solution_revealed", { revealed: true })}>Show Solution</button></div>

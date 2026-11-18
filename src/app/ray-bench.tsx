@@ -44,12 +44,35 @@ export default function RayBench({ settings, reveal = true, rayCount = 3, screen
     }
     line([[-edge, 0], [edge, 0]], "#7b8ca6", true, 1);
     const lensHeight = (axis - 25) / scale;
-    line([[0, -lensHeight], [0, lensHeight]], "#dceaff", false, 3);
-    const direction = settings.type === "convex" ? 1 : -1;
+    const top = 25;
+    const bottom = height - top;
+    const convex = settings.type === "convex";
+    const rim = convex ? 4 : 17;
+    const curve = convex ? 32 : 3;
+    const glass = ctx.createLinearGradient(centre - 25, 0, centre + 25, 0);
+    glass.addColorStop(0, "#5dc7ee55");
+    glass.addColorStop(0.5, "#b5edff35");
+    glass.addColorStop(1, "#5dc7ee55");
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(centre - rim, top);
+    ctx.lineTo(centre + rim, top);
+    ctx.bezierCurveTo(centre + curve, top + 36, centre + curve, bottom - 36, centre + rim, bottom);
+    ctx.lineTo(centre - rim, bottom);
+    ctx.bezierCurveTo(centre - curve, bottom - 36, centre - curve, top + 36, centre - rim, top);
+    ctx.closePath();
+    ctx.fillStyle = glass;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#b5edff";
+    ctx.stroke();
+    line([[0, -lensHeight], [0, lensHeight]], "#b5edff70", true, 1);
+    ctx.fillStyle = "#c5edff";
+    ctx.font = "600 13px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(convex ? "Convex lens" : "Concave lens", centre, 17);
+    ctx.textAlign = "start";
     for (const sign of [-1, 1]) {
-      const tip = sign * lensHeight;
-      const base = tip - sign * direction * 9 / scale;
-      line([[-7 / scale, base], [0, tip], [7 / scale, base]], "#dceaff");
       for (const n of [1, 2]) {
         const position = sign * n * settings.focal;
         if (Math.abs(position) > edge - 4) continue;
@@ -72,5 +95,7 @@ export default function RayBench({ settings, reveal = true, rayCount = 3, screen
     });
     if (reveal && result.v !== null && result.height !== null && Math.abs(result.v) < edge) arrow(result.v, result.height, "#5ee4a4", result.v < 0);
   }, [settings, result.v, result.height, result.sharp, reveal, rayCount, screen]);
-  return <figure className="bench"><canvas ref={ref} width={768} height={330} role="img" aria-label={reveal ? `Ray diagram, ${settings.type} lens, ${result.nature} outcome` : `Partial ray diagram for a ${settings.type} lens`} /><figcaption>Amber: object · Cyan: parallel ray · Violet: centre ray{rayCount === 3 && " · Peach: focal ray"}{reveal && " · Green: image"}</figcaption></figure>;
+  return <figure className="bench"><canvas ref={ref} width={768} height={330} role="img" aria-label={reveal ? `Ray diagram, ${settings.type} lens, ${result.nature} outcome` : `Partial ray diagram for a ${settings.type} lens`} />
+    <figcaption className="ray-legend"><span style={{ color: "#ffcf79" }}>Object</span><span style={{ color: "#4ddce9" }}>Parallel incident ray</span>{rayCount >= 2 && <span style={{ color: "#a48bff" }}>Centre ray</span>}{rayCount === 3 && <span style={{ color: "#ffab78" }}>Focal ray</span>}{screen && <span>Movable screen</span>}{reveal && result.v !== null && <span style={{ color: "#5ee4a4" }}>{result.v < 0 ? "Dashed virtual image" : "Real image"}</span>}</figcaption>
+  </figure>;
 }
