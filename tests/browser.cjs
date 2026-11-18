@@ -78,8 +78,10 @@ async function main() {
     assert.equal(trials[1].supported, true);
     await click("What did you learn?");
     await page.getByRole("heading", { name: "What did you learn?" }).waitFor();
-    assert.equal(await page.locator("canvas").count(), 0);
+    assert.equal(await page.locator(".lab-grid canvas").count(), 0);
     const comparison = page.locator(".trial-history");
+    await comparison.getByRole("img", { name: "Ray diagram, convex lens, virtual outcome" }).waitFor();
+    await comparison.getByRole("img", { name: "Ray diagram, convex lens, real outcome" }).waitFor();
     assert.equal(await comparison.getByText("You predicted", { exact: true }).count(), 2);
     await comparison.getByText("Changed: object distance", { exact: true }).waitFor();
     await comparison.getByText("Real, upside-down image at 40 cm · screen in focus", { exact: true }).waitFor();

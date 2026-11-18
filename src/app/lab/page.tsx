@@ -71,7 +71,7 @@ const reflections = [
 const takeawayLabels = ["Distance changes the image", "Meeting rays make a sharp image", "Magnification shows size and orientation", "Swapping lenses changes the image", "A sharp image helps find focal length"];
 const format = (value: number | null, unit = "") => value === null ? "—" : `${Number(value.toFixed(2))}${unit}`;
 
-function TrialResult({ trial, previous, index, concealed }: { trial: Experiment; previous?: Experiment; index: number; concealed: boolean }) {
+function TrialResult({ trial, previous, index, concealed, diagram = false }: { trial: Experiment; previous?: Experiment; index: number; concealed: boolean; diagram?: boolean }) {
   const { type, distance, focal, height, screen } = trial.settings;
   const result = measure(trial.settings);
   const changed = previous && [
@@ -90,6 +90,7 @@ function TrialResult({ trial, previous, index, concealed }: { trial: Experiment;
     <div className="section-head"><h3>Trial {index + 1}</h3><small>{trial.supported ? "Prediction matched" : "Prediction differed"}</small></div>
     <p className="trial-settings"><strong>{type === "convex" ? "Convex" : "Concave"}</strong> · Object {distance} cm away, {height} cm tall · Focal length {focal} cm · Screen {screen} cm away</p>
     {changed && <p className="trial-settings">{changed.length ? `Changed: ${changed.join(", ")}` : "Same setup as the previous trial"}</p>}
+    {diagram && <RayBench settings={trial.settings} reveal={!concealed} />}
     <dl><div><dt>You predicted</dt><dd>{predictions[trial.prediction] ?? trial.prediction}</dd></div><div><dt>You observed</dt><dd>{observation}</dd></div></dl>
   </article>;
 }
@@ -270,7 +271,7 @@ export default function Lab() {
     </>}
     {history.length > 0 && !state.paused && <details className="panel trial-history" open={state.step >= 4}>
       <summary><strong>Compare saved trials</strong> · {history.length} saved</summary>
-      <div className="cards">{history.map((trial, i) => <TrialResult key={trial.id} trial={trial} previous={history[i - 1]} index={i} concealed={trial.id === last?.id && failedDemo && !state.explanation} />)}</div>
+      <div className="cards">{history.map((trial, i) => <TrialResult key={trial.id} trial={trial} previous={history[i - 1]} index={i} concealed={trial.id === last?.id && failedDemo && !state.explanation} diagram />)}</div>
     </details>}
   </main>;
 }

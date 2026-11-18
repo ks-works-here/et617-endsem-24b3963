@@ -92,7 +92,7 @@ button[aria-pressed=true] { border-color: var(--accent); }
 .lab-topline p { flex: 1 1 18rem; }
 .investigation .stepper { grid-template-columns: repeat(auto-fit, minmax(110px,1fr)); }
 .trial-history > summary { color: var(--accent); }
-.trial-history .cards { margin-top: 1rem; }
+.trial-history .cards { margin-top: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(360px,100%),1fr)); }
 .trial-result { padding: .85rem; border: 1px solid var(--line); border-radius: .6rem; background: #0b1425; }
 .trial-result .section-head { margin-top: 0; }
 .trial-settings { font-size: .86rem; }
