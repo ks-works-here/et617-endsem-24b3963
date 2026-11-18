@@ -4,9 +4,9 @@ Allow 3–5 minutes. Open the app, choose **Open investigation**, leave the defa
 
 1. Open **Lens theory and diagram guide** to see how to read the bench. Select “I expect a real image even inside the focal length.” Choose **Explore apparatus**. Keep the convex lens and 20 cm focal length. Move the screen or change the object's height, keeping the object distance at 12 cm.
 2. Choose **Prepare experiment**, predict **Real image on a screen**, and click **Run Experiment**. Move the screen again. The screen remains unfocused.
-3. Open each hint in order. Select “The rays diverge and only their backward extensions meet.” Open the explanation, select “Moving outside F will form a real image” in the next-trial panel, and save the revision.
-4. Pause and refresh. Use **Resume Investigation**. Set the object distance and screen position to 40 cm using the number fields. Select a real image prediction again and run the trial. The screen shows a sharp inverted image with magnification −1. Expand both trials in the history to compare them.
-5. Open reflection. Choose the lens that can project a real image and the explanation that fits your evidence. Select a takeaway and complete the investigation.
+3. Open each hint in order. Select “The rays diverge and only their backward extensions meet.” Open the explanation. Choose **Try a different setup**, select “Moving outside F will form a real image,” and save the revision.
+4. Pause and refresh. Use **Resume Investigation**. Set the object distance and screen position to 40 cm using the number fields. Select a real image prediction again and run the trial. The screen shows a sharp inverted image with magnification −1. Open **Compare saved trials** to see how the setup, prediction, and result changed.
+5. Choose **What did you learn?** Pick the lens that can project a real image in the new setup. Select a takeaway from the trials and complete the investigation.
 6. Follow the related Arena question. Select an explanation, access a hint, bookmark the question, and reveal the worked solution. Optionally start a mixed or timed set.
 7. Open **Analytics**. Expand the failed trial and its revision, browse the clickstream, and download CSV, JSON, and experiment history. Refresh to confirm that the export log persists.
 

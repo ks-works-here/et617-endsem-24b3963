@@ -49,7 +49,7 @@ async function main() {
     await page.getByLabel("Predicted outcome").selectOption("real");
     await click("Run Experiment");
     await set("Screen position", 55);
-    await visible("The screen stays unfocused at every position.");
+    await page.locator("#trial-evidence").getByText("No sharp image on the screen", { exact: true }).waitFor();
     assert.equal(await page.getByRole("button", { name: "Open explanation" }).isDisabled(), true);
     for (let i = 0; i < 4; i++) await click("Next hint");
     await visible("If you extend the diverging rays backwards, where do they appear to originate?");
@@ -58,6 +58,7 @@ async function main() {
     await page.getByLabel("What do the rays and screen tell you?").selectOption("The rays diverge and only their backward extensions meet.");
     await visible("That explanation fits the observed rays.");
     await click("Open explanation");
+    await click("Try a different setup");
     await page.getByLabel("Hypothesis", { exact: true }).selectOption("Moving outside F will form a real image.");
     await click("Save revised hypothesis");
     await click("Pause investigation");
@@ -74,9 +75,15 @@ async function main() {
     assert.equal(trials[0].supported, false);
     assert.match(trials[0].revision, /outside F/);
     assert.equal(trials[1].supported, true);
-    await click("Go to reflection");
+    await click("What did you learn?");
+    await page.getByRole("heading", { name: "What did you learn?" }).waitFor();
+    assert.equal(await page.locator("canvas").count(), 0);
+    const comparison = page.locator(".trial-history");
+    assert.equal(await comparison.getByText("You predicted", { exact: true }).count(), 2);
+    await comparison.getByText("Changed: object distance", { exact: true }).waitFor();
+    await comparison.getByText("Real, upside-down image at 40 cm · screen in focus", { exact: true }).waitFor();
     await page.getByLabel("Which lens can project a sharp image, and why?").selectOption("The +12 cm lens projects a sharp image because 24 cm is outside F.");
-    await page.getByLabel("What did your trials demonstrate?").selectOption("The object position relative to F changes the outcome for a convex lens.");
+    await page.getByLabel("Choose one takeaway from your trials").selectOption("The object position relative to F changes the outcome for a convex lens.");
     assert.equal(await page.locator("textarea").count(), 0);
     await click("Complete investigation");
     await visible("Your transfer answer matches the evidence. The +12 cm lens forms a real image.");

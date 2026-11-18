@@ -60,8 +60,16 @@ pre { font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 button[aria-pressed=true] { border-color: var(--accent); }
 .radio { display: flex; gap: .55rem; align-items: baseline; }
 .lab-hero { padding-block: clamp(1.3rem, 3vw, 2.6rem); }
-.lab-task { border-left: 3px solid var(--accent); }
-.lab-task .section-head { margin: 0 0 .8rem; }
+.lab-topline p { flex: 1 1 18rem; }
+.investigation .stepper { grid-template-columns: repeat(auto-fit, minmax(110px,1fr)); }
+.trial-history > summary { color: var(--accent); }
+.trial-history .cards { margin-top: 1rem; }
+.trial-result { padding: .85rem; border: 1px solid var(--line); border-radius: .6rem; background: #0b1425; }
+.trial-result .section-head { margin-top: 0; }
+.trial-settings { font-size: .86rem; }
+.trial-result dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(145px,100%),1fr)); gap: .75rem; margin: 0; }
+.trial-result dt { color: var(--muted); font-size: .78rem; }
+.trial-result dd { margin: 0; }
 .theory summary { color: var(--accent); }
 .theory summary small { margin-left: 1rem; }
 .theory[open] summary { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--line); }
