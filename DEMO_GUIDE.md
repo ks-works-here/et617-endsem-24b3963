@@ -2,11 +2,11 @@
 
 Allow 3–5 minutes. Open the app, choose **Open investigation**, leave the default mission selected, and choose **Start investigation**.
 
-1. Type “I expect a real image even inside the focal length.” Choose **Explore apparatus**. Keep the convex lens and 20 cm focal length. Move the screen or change the object's height, keeping the object distance at 12 cm.
+1. Select “I expect a real image even inside the focal length.” Choose **Explore apparatus**. Keep the convex lens and 20 cm focal length. Move the screen or change the object's height, keeping the object distance at 12 cm.
 2. Choose **Prepare experiment**, predict **Real image on a screen**, and click **Run Experiment**. Move the screen again. The screen remains unfocused.
-3. Open each hint in order. Write “The rays diverge and only their backward extensions meet” under **Interpretation**. Open the explanation, revise the hypothesis to “Moving outside F will form a real image,” and save the revision.
+3. Open each hint in order. Select “The rays diverge and only their backward extensions meet.” Open the explanation, select “Moving outside F will form a real image” in the next-trial panel, and save the revision.
 4. Pause and refresh. Use **Resume Investigation**. Set the object distance and screen position to 40 cm using the number fields. Select a real image prediction again and run the trial. The screen shows a sharp inverted image with magnification −1. Expand both trials in the history to compare them.
-5. Open reflection. For transfer, explain why a +12 cm lens can project a real image at a 24 cm object distance while a +30 cm lens cannot. Summarize your evidence and complete the investigation.
+5. Open reflection. Choose the lens that can project a real image and the explanation that fits your evidence. Select a takeaway and complete the investigation.
 6. Follow the related Arena question. Try an explanation, access a hint, bookmark the question, and reveal the worked solution. Optionally start a mixed or timed set.
 7. Open **Analytics**. Expand the failed trial and its revision, browse the clickstream, and download CSV, JSON, and experiment history. Refresh to confirm that the export log persists.
 

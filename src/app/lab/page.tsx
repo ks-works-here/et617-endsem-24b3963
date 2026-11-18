@@ -30,7 +30,43 @@ const controls = [
   ["focal", "Focal length magnitude", 5, 45], ["distance", "Object distance", 3, 100],
   ["height", "Object height", 1, 15], ["screen", "Screen position", 1, 150],
 ] as const;
+const hypotheses = [
+  "I expect a real image even inside the focal length.",
+  "Moving outside F will form a real image.",
+  "Inside F, a convex lens will form an upright virtual image.",
+  "At F, the rays will leave parallel and no screen position will be sharp.",
+  "At 2F, a convex lens will produce an inverted image the same size as the object.",
+  "Two object positions can produce images with the same absolute magnification.",
+  "Changing the focal length can change the image type even when the object stays put.",
+  "A concave lens will produce an upright, smaller virtual image.",
+  "I can infer focal length from the object distance and the position of the sharp screen image.",
+];
+const interpretations = {
+  real: "The outgoing rays converge at the image position.",
+  virtual: "The rays diverge and only their backward extensions meet.",
+  parallel: "The outgoing rays are parallel and never meet at a finite distance.",
+};
+const transfers = [
+  "The +12 cm lens projects a sharp image because 24 cm is outside F.",
+  "The +30 cm lens projects a sharp image because 24 cm is inside F.",
+  "Both lenses project sharp images because both are convex.",
+];
+const reflections = [
+  "The object position relative to F changes the outcome for a convex lens.",
+  "A screen forms a sharp image where the refracted rays converge.",
+  "The signed image height and magnification describe image orientation and size.",
+  "Changing the lens can change the outcome while the object stays in place.",
+  "A sharp screen reading and the object distance can be used to infer focal length.",
+];
 const format = (value: number | null, unit = "") => value === null ? "—" : `${Number(value.toFixed(2))}${unit}`;
+
+function Choice({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
+  return <label>{label}<select aria-label={label} value={value} onChange={e => onChange(e.target.value)}>
+    <option value="">Select an answer</option>
+    {value && !options.includes(value) && <option value={value}>{value} (saved response)</option>}
+    {options.map(option => <option value={option} key={option}>{option}</option>)}
+  </select></label>;
+}
 
 function DistanceInput({ label, value, min, max, commit }: { label: string; value: number; min: number; max: number; commit: (value: number) => void }) {
   return <input key={value} aria-label={`${label} in centimetres`} type="number" min={min} max={max} step="any" defaultValue={value}
@@ -47,9 +83,13 @@ export default function Lab() {
   const history = useStored<ReturnType<typeof getExperimentHistory>>(() => JSON.stringify(getExperimentHistory()), []).filter(trial => trial.session === state.session);
   const last = history.find(trial => trial.id === state.last);
   const [message, setMessage] = useState("");
+  const [revisionMessage, setRevisionMessage] = useState("");
   const opened = useRef("");
   const elapsed = useStored(() => JSON.stringify(read("lab-time:" + state.session, 0)), 0);
   const result = measure(state.settings);
+  const expectedInterpretation = last ? interpretations[measure(last.settings).nature] : "";
+  const selectedInterpretation = Object.values(interpretations).includes(state.interpretation);
+  const interpretationCorrect = state.interpretation === expectedInterpretation;
   const tested = !!last && ["type", "focal", "distance", "height"].every(key => state.settings[key as keyof Settings] === last.settings[key as keyof Settings]);
   const failedDemo = tested && !!last && last.prediction === "real" && result.nature === "virtual" && state.settings.type === "convex";
   const reveal = tested && (!failedDemo || state.explanation);
@@ -81,7 +121,7 @@ export default function Lab() {
     if (record) log("experimental_variable_changed", { variable: key, value, settings: { ...state.settings, ...patch } });
   }
   function run() {
-    if (!state.hypothesis.trim() || !state.prediction) { setMessage("Write a hypothesis and select a prediction before running the experiment."); return; }
+    if (!state.hypothesis.trim() || !state.prediction) { setMessage("Choose a hypothesis and a prediction before running the experiment."); return; }
     const experiment = id();
     const supported = state.prediction === result.nature;
     const observation = result.nature === "parallel" ? "Emerging rays are parallel. No finite screen position is sharp." : result.nature === "virtual" ? "No sharp image forms on the screen. The emerging rays diverge." : `Real, inverted image at ${format(result.v, " cm")}.`;
@@ -94,20 +134,21 @@ export default function Lab() {
     if (last) log("experiment_repeated", { previous_experiment: last.id, ...details }, experiment);
     update({ last: experiment, step: 3, hints: 0, explanation: false, interpretation: "", prediction: "" });
     setMessage("");
+    setRevisionMessage("");
   }
   function revise() {
     if (!last || !state.hypothesis.trim() || !state.interpretation.trim() || state.hypothesis.trim() === last.hypothesis) {
-      setMessage("Interpret the observation and change your hypothesis before saving the revision.");
+      setRevisionMessage("Choose an interpretation and a different hypothesis before saving the revision.");
       return;
     }
     saveExperiment({ ...last, interpretation: state.interpretation.trim(), revision: state.hypothesis.trim() });
     log("hypothesis_revised", { original: last.hypothesis, revision: state.hypothesis.trim(), interpretation: state.interpretation.trim() });
-    setMessage("Revision saved. Change the setup and run a comparison trial.");
+    setRevisionMessage("Revision saved. Change the setup and run a comparison trial.");
   }
   function finish() {
     if (!last || !state.reflection.trim() || !state.transfer.trim()) return;
     if (state.interpretation.trim()) saveExperiment({ ...last, interpretation: state.interpretation.trim() });
-    log("challenge_completed", { transfer: state.transfer.trim(), mission: state.mission });
+    log("challenge_completed", { transfer: state.transfer.trim(), correct: transfers.includes(state.transfer) ? state.transfer === transfers[0] : null, mission: state.mission });
     log("investigation_completed", { reflection: state.reflection.trim() });
     log("session_completed", { active_seconds: elapsed });
     update({ step: 5 });
@@ -118,7 +159,9 @@ export default function Lab() {
     <ol className="stepper">{steps.map((step, i) => <li key={step} className={i === state.step ? "current" : ""}>{step}<small>{times[i]}</small></li>)}</ol>
     {!state.session || state.paused || state.step === 5 ? <section className="panel">
       <h2>{state.paused ? "Investigation paused" : state.step === 5 ? "Investigation complete" : "Can you bring the image into focus?"}</h2>
-      {state.step === 5 && <><p>{history.length} trials · {history.filter(row => row.supported).length} predictions supported</p><blockquote>{state.reflection}</blockquote><p><Link href="/olympiad?question=c1">Try the related Olympiad question →</Link></p><p><Link href="/analytics">Review investigation evidence →</Link></p></>}
+      {state.step === 5 && <><p>{history.length} trials · {history.filter(row => row.supported).length} predictions supported</p>
+        {transfers.includes(state.transfer) && <p>{state.transfer === transfers[0] ? "Your transfer answer matches the evidence. The +12 cm lens forms a real image." : "The +12 cm lens forms a real image because the object is outside F. The object is inside F for the +30 cm lens, which forms a virtual image."}</p>}
+        <blockquote>{state.reflection}</blockquote><p><Link href="/olympiad?question=c1">Try the related Olympiad question →</Link></p><p><Link href="/analytics">Review investigation evidence →</Link></p></>}
       {!state.paused && <label>Investigation mission<select value={state.mission} onChange={e => update({ mission: Number(e.target.value) })}>{missions.map((mission, i) => <option value={i} key={mission}>{mission}</option>)}</select></label>}
       <button className="primary" onClick={() => {
         if (state.paused) { log("session_resumed"); update({ paused: false }); }
@@ -126,7 +169,7 @@ export default function Lab() {
       }}>{state.paused ? "Resume Investigation" : state.step === 5 ? "Start another investigation" : "Start investigation"}</button>
     </section> : <>
       <div className="section-head"><p>{missions[state.mission]}</p><small>Active time {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}</small><button onClick={() => { log("session_paused", { active_seconds: elapsed }); update({ paused: true }); }}>Pause investigation</button></div>
-      {state.step === 0 ? <section className="panel"><h2>Mission briefing</h2><p>Predict what would happen before exploring the apparatus. You can refine your prediction before each run.</p><label>Initial hypothesis<textarea value={state.hypothesis} onChange={e => update({ hypothesis: e.target.value })} placeholder="I predict… because…" /></label><button className="primary" disabled={!state.hypothesis.trim()} onClick={() => update({ step: 1 })}>Explore apparatus</button></section> : <>
+      {state.step === 0 ? <section className="panel"><h2>Mission briefing</h2><p>Choose a hypothesis to test. You can refine it before each run.</p><Choice label="Initial hypothesis" value={state.hypothesis} options={hypotheses} onChange={hypothesis => update({ hypothesis })} /><button className="primary" disabled={!state.hypothesis.trim()} onClick={() => update({ step: 1 })}>Explore apparatus</button></section> : <>
         <div className="lab-grid">
           <section className="panel"><h2>Optical bench</h2><RayBench settings={state.settings} reveal={reveal} />
             <dl className="metrics">{[["Object u", format(result.u, " cm")], ["Focal f", format(result.f, " cm")], ["Image v", reveal ? format(result.v, " cm") : "—"], ["Height", reveal ? format(result.height, " cm") : "—"], ["Magnification", reveal ? format(result.m) : "—"]].map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}</dl>
@@ -137,17 +180,23 @@ export default function Lab() {
           </section>
         </div>
         {state.step === 1 && <button className="primary" onClick={() => update({ step: 2 })}>Prepare experiment</button>}
-        {state.step >= 2 && <section className="panel"><h2>{last ? "Plan the next trial" : "Predict and test"}</h2><label>Hypothesis<textarea aria-label="Hypothesis" value={state.hypothesis} onChange={e => update({ hypothesis: e.target.value })} /></label><label>Predicted outcome<select value={state.prediction} onChange={e => update({ prediction: e.target.value })}><option value="">Select an outcome</option><option value="real">Real image on a screen</option><option value="virtual">Virtual image</option><option value="parallel">Parallel rays, no finite image</option></select></label><button className="primary" onClick={run}>Run Experiment</button><p role="status">{message}</p></section>}
+        {state.step >= 2 && <section className="panel"><h2>{last ? "Plan the next trial" : "Predict and test"}</h2><Choice label="Hypothesis" value={state.hypothesis} options={hypotheses} onChange={hypothesis => update({ hypothesis })} /><label>Predicted outcome<select value={state.prediction} onChange={e => update({ prediction: e.target.value })}><option value="">Select an outcome</option><option value="real">Real image on a screen</option><option value="virtual">Virtual image</option><option value="parallel">Parallel rays, no finite image</option></select></label><button className="primary" onClick={run}>Run Experiment</button><p role="status">{message}</p></section>}
         {last && <section className="panel"><h2>Interpret the evidence</h2><p>{last.supported ? "The observation supports your prediction. Which ray behavior explains it?" : "The observation differs from your prediction. Move the screen and compare the outgoing rays."}</p>
           <p>{failedDemo && !state.explanation ? "The screen stays unfocused at every position." : last.observation}</p>
           {state.hints > 0 && <ol>{(failedDemo ? prompts : ["Compare the outgoing rays with the predicted image.", "Check where the object lies relative to F."]).slice(0, state.hints).map(hint => <li key={hint}>{hint}</li>)}</ol>}
           <div className="actions"><button disabled={state.hints >= (failedDemo ? 4 : 2)} onClick={() => { log("hint_accessed", { hint: state.hints + 1 }); update({ hints: state.hints + 1 }); }}>Next hint</button>
           {failedDemo && <button disabled={!state.interpretation.trim() || state.explanation} onClick={() => { log("explanation_opened", { interpretation: state.interpretation.trim() }); update({ explanation: true }); }}>Open explanation</button>}</div>
           {failedDemo && state.explanation && <p>Inside F, a convex lens sends rays out diverging. Their backward extensions meet on the object side, forming a virtual, erect, magnified image that cannot be projected. Move the object beyond F and compare.</p>}
-          <label>Interpretation<textarea value={state.interpretation} onChange={e => update({ interpretation: e.target.value })} placeholder="What do the rays and screen tell you?" /></label>
+          <Choice label="What do the rays and screen tell you?" value={state.interpretation} options={Object.values(interpretations)} onChange={interpretation => {
+            update({ interpretation });
+            if (interpretation) log("interpretation_selected", { interpretation, correct: interpretation === expectedInterpretation });
+          }} />
+          {selectedInterpretation && <p role="status">{interpretationCorrect ? "That explanation fits the observed rays." : "Check the outgoing ray paths and try another interpretation."}</p>}
+          <p>To revise, choose a different hypothesis in the next-trial panel, then save it here.</p>
           <div className="actions"><button onClick={revise}>Save revised hypothesis</button><button onClick={() => update({ step: 4 })}>Go to reflection</button></div>
+          <p role="status">{revisionMessage}</p>
         </section>}
-        {state.step === 4 && <section className="panel"><h2>Transfer and reflection</h2><p>Two lenses share an object position of 24 cm. Their focal lengths are +12 cm and +30 cm. Which can project an image, and what evidence supports your prediction?</p><label>Transfer response<textarea value={state.transfer} onChange={e => update({ transfer: e.target.value })} /></label><label>What did your trials demonstrate?<textarea value={state.reflection} onChange={e => update({ reflection: e.target.value })} /></label><button className="primary" disabled={!state.transfer.trim() || !state.reflection.trim()} onClick={finish}>Complete investigation</button></section>}
+        {state.step === 4 && <section className="panel"><h2>Transfer and reflection</h2><p>Two lenses share an object position of 24 cm. Their focal lengths are +12 cm and +30 cm.</p><Choice label="Which lens can project a sharp image, and why?" value={state.transfer} options={transfers} onChange={transfer => update({ transfer })} /><Choice label="What did your trials demonstrate?" value={state.reflection} options={reflections} onChange={reflection => update({ reflection })} /><button className="primary" disabled={!state.transfer.trim() || !state.reflection.trim()} onClick={finish}>Complete investigation</button></section>}
         {history.length > 0 && <section className="panel"><h2>Trial history</h2>{history.map((trial, i) => <details key={trial.id}><summary>Trial {i + 1} · {trial.settings.type} · u = −{trial.settings.distance} cm · |f| = {trial.settings.focal} cm</summary><p>{trial.hypothesis}</p><p>{trial.id === last?.id && failedDemo && !state.explanation ? "Screen stayed unfocused." : trial.observation}</p>{trial.revision && <p>Revision: {trial.revision}</p>}</details>)}</section>}
       </>}
     </>}

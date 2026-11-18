@@ -20,7 +20,7 @@ async function main() {
     await page.goto(base);
     await page.getByRole("link", { name: "Open investigation →" }).click();
     await click("Start investigation");
-    await page.getByLabel("Initial hypothesis").fill("I expect a real image even inside the focal length.");
+    await page.getByLabel("Initial hypothesis").selectOption("I expect a real image even inside the focal length.");
     await click("Explore apparatus");
     await page.getByLabel("Lens type").selectOption("concave");
     await page.getByLabel("Lens type").selectOption("convex");
@@ -40,9 +40,12 @@ async function main() {
     assert.equal(await page.getByRole("button", { name: "Open explanation" }).isDisabled(), true);
     for (let i = 0; i < 4; i++) await click("Next hint");
     await visible("If you extend the diverging rays backwards, where do they appear to originate?");
-    await page.getByLabel("Interpretation").fill("The rays diverge and only their backward extensions meet.");
+    await page.getByLabel("What do the rays and screen tell you?").selectOption("The outgoing rays converge at the image position.");
+    await visible("Check the outgoing ray paths and try another interpretation.");
+    await page.getByLabel("What do the rays and screen tell you?").selectOption("The rays diverge and only their backward extensions meet.");
+    await visible("That explanation fits the observed rays.");
     await click("Open explanation");
-    await page.getByLabel("Hypothesis", { exact: true }).fill("Moving outside F will form a real image.");
+    await page.getByLabel("Hypothesis", { exact: true }).selectOption("Moving outside F will form a real image.");
     await click("Save revised hypothesis");
     await click("Pause investigation");
     await page.reload();
@@ -59,9 +62,11 @@ async function main() {
     assert.match(trials[0].revision, /outside F/);
     assert.equal(trials[1].supported, true);
     await click("Go to reflection");
-    await page.getByLabel("Transfer response").fill("The +12 cm lens projects a sharp image because 24 cm is outside F.");
-    await page.getByLabel("What did your trials demonstrate?").fill("Inside F gave a virtual image and outside F gave a real image.");
+    await page.getByLabel("Which lens can project a sharp image, and why?").selectOption("The +12 cm lens projects a sharp image because 24 cm is outside F.");
+    await page.getByLabel("What did your trials demonstrate?").selectOption("The object position relative to F changes the outcome for a convex lens.");
+    assert.equal(await page.locator("textarea").count(), 0);
     await click("Complete investigation");
+    await visible("Your transfer answer matches the evidence. The +12 cm lens forms a real image.");
     await page.getByRole("link", { name: "Try the related Olympiad question →" }).click();
     await page.getByRole("heading", { name: "The elusive screen image" }).waitFor();
     await page.getByLabel("Your explanation").fill("Because the lens flips the picture.");

@@ -6,7 +6,8 @@ export function measure(s: Settings) {
   const f = s.type === "convex" ? s.focal : -s.focal;
   const v = u === -f ? null : 1 / (1 / f + 1 / u);
   const m = v === null ? null : v / u;
-  return { u, f, v, m, height: m === null ? null : m * s.height, nature: v === null ? "parallel" : v > 0 ? "real" : "virtual", sharp: v !== null && v > 0 && Math.abs(v - s.screen) <= 0.5 };
+  const nature: "parallel" | "real" | "virtual" = v === null ? "parallel" : v > 0 ? "real" : "virtual";
+  return { u, f, v, m, height: m === null ? null : m * s.height, nature, sharp: v !== null && v > 0 && Math.abs(v - s.screen) <= 0.5 };
 }
 
 export function rays(s: Settings) {
