@@ -68,6 +68,7 @@ const reflections = [
   "Changing the lens can change the outcome while the object stays in place.",
   "A sharp screen reading and the object distance can be used to infer focal length.",
 ];
+const takeawayLabels = ["Distance changes the image", "Meeting rays make a sharp image", "Magnification shows size and orientation", "Swapping lenses changes the image", "A sharp image helps find focal length"];
 const format = (value: number | null, unit = "") => value === null ? "—" : `${Number(value.toFixed(2))}${unit}`;
 
 function TrialResult({ trial, previous, index, concealed }: { trial: Experiment; previous?: Experiment; index: number; concealed: boolean }) {
@@ -99,6 +100,15 @@ function Choice({ label, value, options, onChange }: { label: string; value: str
     {value && !options.includes(value) && <option value={value}>{value} (saved response)</option>}
     {options.map(option => <option value={option} key={option}>{option}</option>)}
   </select></label>;
+}
+
+function LensChoice({ focal }: { focal: 12 | 30 }) {
+  return <span className="lens-choice-diagram">
+    <span className="lens-choice-axis" aria-hidden="true" />
+    <span className="lens-choice-object" aria-hidden="true">↑</span>
+    <span className="lens-choice-glass" aria-hidden="true" />
+    <span className="lens-choice-focus" style={{ left: focal === 12 ? "39%" : "12%" }} aria-hidden="true">F</span>
+  </span>;
 }
 
 function DistanceInput({ label, value, min, max, commit }: { label: string; value: number; min: number; max: number; commit: (value: number) => void }) {
@@ -195,7 +205,10 @@ export default function Lab() {
     {!state.session || state.paused || state.step === 5 ? <section className="panel">
       <h2>{state.paused ? "Investigation paused" : state.step === 5 ? "Investigation complete" : "Can you bring the image into focus?"}</h2>
       {state.step === 5 && <><p>{history.length} trials · {history.filter(row => row.supported).length} predictions supported</p>
-        {transfers.includes(state.transfer) && <p>{state.transfer === transfers[0] ? "Your transfer answer matches the evidence. The +12 cm lens forms a real image." : "The +12 cm lens forms a real image because the object is outside F. The object is inside F for the +30 cm lens, which forms a virtual image."}</p>}
+        {transfers.includes(state.transfer) && <div className="result-strip">
+          <span>{state.transfer === transfers[0] ? "✓ Correct" : "Answer · +12 cm lens"}</span>
+          <span>24 cm &gt; 12 cm · Real image</span><span>24 cm &lt; 30 cm · Virtual image</span>
+        </div>}
         <p><strong>Your takeaway</strong> · {state.reflection}</p><p><Link href="/olympiad?question=c1">Try the related Olympiad question →</Link></p><p><Link href="/analytics">Review investigation evidence →</Link></p></>}
       {!state.paused && <label>Investigation mission<select value={state.mission} onChange={e => update({ mission: Number(e.target.value) })}>{missions.map((mission, i) => <option value={i} key={mission}>{mission}</option>)}</select></label>}
       <button className="primary" onClick={() => {
@@ -221,7 +234,11 @@ export default function Lab() {
           {state.hints > 0 && <ol>{(failedDemo ? prompts : ["Compare the outgoing rays with the predicted image.", "Check where the object lies relative to F."]).slice(0, state.hints).map(hint => <li key={hint}>{hint}</li>)}</ol>}
           <div className="actions"><button disabled={state.hints >= (failedDemo ? 4 : 2)} onClick={() => { log("hint_accessed", { hint: state.hints + 1 }); update({ hints: state.hints + 1 }); }}>Next hint</button>
           {failedDemo && <button disabled={!state.interpretation.trim() || state.explanation} onClick={() => { log("explanation_opened", { interpretation: state.interpretation.trim() }); update({ explanation: true }); }}>Open explanation</button>}</div>
-          {failedDemo && state.explanation && <p>Inside F, a convex lens sends rays out diverging. Their backward extensions meet on the object side, forming a virtual, erect, magnified image that cannot be projected. Move the object beyond F and compare.</p>}
+          {failedDemo && state.explanation && <ol className="ray-explanation" aria-label="How the virtual image forms">
+            <li><span aria-hidden="true">↗ ↘</span><strong>Rays spread out</strong></li>
+            <li><span aria-hidden="true">⋯ ↖</span><strong>Trace dashed lines back</strong></li>
+            <li><span aria-hidden="true">↑</span><strong>Upright virtual image</strong></li>
+          </ol>}
           <Choice label="What do the rays and screen tell you?" value={state.interpretation} options={Object.values(interpretations)} onChange={interpretation => {
             update({ interpretation });
             if (interpretation) log("interpretation_selected", { interpretation, correct: interpretation === expectedInterpretation });
@@ -229,7 +246,26 @@ export default function Lab() {
           {selectedInterpretation && <p role="status">{interpretationCorrect ? "That explanation fits the observed rays." : "Check the outgoing ray paths and try another interpretation."}</p>}
           <div className="actions"><button onClick={() => update({ step: 2 })}>Try a different setup</button><button className="primary" onClick={() => update({ step: 4 })}>What did you learn?</button></div>
         </section>}
-        {state.step === 4 && <section className="panel" id="trial-reflection"><h2>What did you learn?</h2><p>Two lenses share an object position of 24 cm. Their focal lengths are +12 cm and +30 cm.</p><Choice label="Which lens can project a sharp image, and why?" value={state.transfer} options={transfers} onChange={transfer => update({ transfer })} /><Choice label="Choose one takeaway from your trials" value={state.reflection} options={reflections} onChange={reflection => update({ reflection })} /><button className="primary" disabled={!state.transfer.trim() || !state.reflection.trim()} onClick={finish}>Complete investigation</button></section>}
+        {state.step === 4 && <section className="panel" id="trial-reflection">
+          <h2>What did you learn?</h2>
+          <fieldset>
+            <legend>Which lens can make a sharp screen image?</legend>
+            <p className="quiz-distance"><span aria-hidden="true">↑</span> Object distance · 24 cm</p>
+            <div className="lens-choices">{["+12 cm lens", "+30 cm lens", "Both lenses"].map((label, index) => <label className="visual-choice" key={label}>
+              <input type="radio" name="transfer" aria-label={label} checked={state.transfer === transfers[index]} onChange={() => update({ transfer: transfers[index] })} />
+              <strong>{label}</strong>
+              {index < 2 ? <LensChoice focal={index === 0 ? 12 : 30} /> : <span className="lens-pair" aria-hidden="true"><i /><i /></span>}
+            </label>)}</div>
+          </fieldset>
+          <fieldset className="takeaway-choices">
+            <legend>Pick one takeaway</legend>
+            {takeawayLabels.map((label, index) => <label className="visual-choice" key={label}>
+              <input type="radio" name="takeaway" checked={state.reflection === reflections[index]} onChange={() => update({ reflection: reflections[index] })} />
+              {label}
+            </label>)}
+          </fieldset>
+          <button className="primary" disabled={!state.transfer.trim() || !state.reflection.trim()} onClick={finish}>Complete investigation</button>
+        </section>}
       </>}
     </>}
     {history.length > 0 && !state.paused && <details className="panel trial-history" open={state.step >= 4}>

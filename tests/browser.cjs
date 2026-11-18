@@ -58,6 +58,7 @@ async function main() {
     await page.getByLabel("What do the rays and screen tell you?").selectOption("The rays diverge and only their backward extensions meet.");
     await visible("That explanation fits the observed rays.");
     await click("Open explanation");
+    await visible("Trace dashed lines back");
     await click("Try a different setup");
     await page.getByLabel("Hypothesis", { exact: true }).selectOption("Moving outside F will form a real image.");
     await click("Save revised hypothesis");
@@ -82,11 +83,11 @@ async function main() {
     assert.equal(await comparison.getByText("You predicted", { exact: true }).count(), 2);
     await comparison.getByText("Changed: object distance", { exact: true }).waitFor();
     await comparison.getByText("Real, upside-down image at 40 cm · screen in focus", { exact: true }).waitFor();
-    await page.getByLabel("Which lens can project a sharp image, and why?").selectOption("The +12 cm lens projects a sharp image because 24 cm is outside F.");
-    await page.getByLabel("Choose one takeaway from your trials").selectOption("The object position relative to F changes the outcome for a convex lens.");
+    await page.getByRole("radio", { name: "+12 cm lens", exact: true }).check();
+    await page.getByRole("radio", { name: "Distance changes the image", exact: true }).check();
     assert.equal(await page.locator("textarea").count(), 0);
     await click("Complete investigation");
-    await visible("Your transfer answer matches the evidence. The +12 cm lens forms a real image.");
+    await visible("24 cm > 12 cm · Real image");
     await page.getByRole("link", { name: "Try the related Olympiad question →" }).click();
     await page.getByRole("heading", { name: "The elusive screen image" }).waitFor();
     const choose = label => page.getByRole("radio", { name: label, exact: true }).check();
