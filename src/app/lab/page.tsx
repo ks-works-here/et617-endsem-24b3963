@@ -128,9 +128,16 @@ export default function Lab() {
   const last = history.find(trial => trial.id === state.last);
   const [message, setMessage] = useState("");
   const [revisionMessage, setRevisionMessage] = useState("");
+  const [finishAttempted, setFinishAttempted] = useState(false);
+  const completionHeading = useRef<HTMLHeadingElement>(null);
+  const showCompletion = useRef(false);
   const opened = useRef("");
   const elapsed = useStored(() => JSON.stringify(read("lab-time:" + state.session, 0)), 0);
   const result = measure(state.settings);
+  const finishMessage = !last ? "Run a trial before you finish."
+    : !state.transfer.trim() ? "Choose a lens above."
+    : !state.reflection.trim() ? "Pick one takeaway above."
+    : "";
   const expectedInterpretation = last ? interpretations[measure(last.settings).nature] : "";
   const selectedInterpretation = Object.values(interpretations).includes(state.interpretation);
   const interpretationCorrect = state.interpretation === expectedInterpretation;
@@ -145,6 +152,11 @@ export default function Lab() {
     opened.current = state.session;
     track("investigation_opened", state.session, "lens-bench", steps[state.step] ?? "Complete");
   }, [state.session, state.step]);
+  useEffect(() => {
+    if (state.step !== 5 || !showCompletion.current) return;
+    showCompletion.current = false;
+    completionHeading.current?.focus();
+  }, [state.step]);
   const activeSession = state.session && !state.paused && state.step < 5 ? state.session : "";
   useEffect(() => {
     if (!activeSession) return;
@@ -156,6 +168,7 @@ export default function Lab() {
   }, [activeSession]);
 
   function start() {
+    setFinishAttempted(false);
     const session = id();
     write("lab", { ...initial, session, mission: state.mission });
     track("session_started", session, "lens-bench", "Mission", { mission: state.mission });
@@ -191,11 +204,15 @@ export default function Lab() {
     setRevisionMessage("Revision saved. Change the setup and run a comparison trial.");
   }
   function finish() {
-    if (!last || !state.reflection.trim() || !state.transfer.trim()) return;
+    if (finishMessage || !last) {
+      setFinishAttempted(true);
+      return;
+    }
     if (state.interpretation.trim()) saveExperiment({ ...last, interpretation: state.interpretation.trim() });
     log("challenge_completed", { transfer: state.transfer.trim(), correct: transfers.includes(state.transfer) ? state.transfer === transfers[0] : null, mission: state.mission });
     log("investigation_completed", { reflection: state.reflection.trim() });
     log("session_completed", { active_seconds: elapsed });
+    showCompletion.current = true;
     update({ step: 5 });
   }
 
@@ -204,7 +221,7 @@ export default function Lab() {
     <Theory />
     <ol className="stepper" aria-label="Investigation steps">{steps.map((step, i) => <li key={step} aria-current={i === state.step ? "step" : undefined} className={i === state.step ? "current" : ""}>{step}</li>)}</ol>
     {!state.session || state.paused || state.step === 5 ? <section className="panel">
-      <h2>{state.paused ? "Investigation paused" : state.step === 5 ? "Investigation complete" : "Can you bring the image into focus?"}</h2>
+      <h2 ref={completionHeading} tabIndex={state.step === 5 ? -1 : undefined}>{state.paused ? "Investigation paused" : state.step === 5 ? "Investigation complete" : "Can you bring the image into focus?"}</h2>
       {state.step === 5 && <><p>{history.length} trials · {history.filter(row => row.supported).length} predictions supported</p>
         {transfers.includes(state.transfer) && <div className="result-strip">
           <span data-result={state.transfer === transfers[0] ? "correct" : "incorrect"}>{state.transfer === transfers[0] ? "✓ Correct" : "✕ Incorrect · +12 cm lens"}</span>
@@ -265,7 +282,8 @@ export default function Lab() {
               {label}
             </label>)}
           </fieldset>
-          <button className="primary" disabled={!state.transfer.trim() || !state.reflection.trim()} onClick={finish}>Complete investigation</button>
+          <button className="primary" type="button" onClick={finish}>Complete investigation</button>
+          {finishAttempted && finishMessage && <p className="finish-message" role="status">{finishMessage}</p>}
         </section>}
       </>}
     </>}

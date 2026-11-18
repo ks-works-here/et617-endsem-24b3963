@@ -87,6 +87,7 @@ button[aria-pressed=true] { border-color: var(--accent); }
 .lens-pair { display: flex; justify-content: center; align-items: center; gap: .75rem; }
 .takeaway-choices { display: flex; flex-wrap: wrap; gap: .55rem; margin: 1rem 0; }
 .takeaway-choices legend { margin-bottom: .5rem; }
+.finish-message { margin: .55rem 0 0; color: #ffe2a7; }
 .result-strip { display: flex; flex-wrap: wrap; gap: .45rem; margin-block: .65rem; }
 .result-strip span { padding: .25rem .55rem; border-radius: .4rem; color: #b8f0d5; background: #12322d; }
 .lab-topline p { flex: 1 1 18rem; }

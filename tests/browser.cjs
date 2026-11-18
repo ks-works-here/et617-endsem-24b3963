@@ -85,10 +85,16 @@ async function main() {
     assert.equal(await comparison.getByText("You predicted", { exact: true }).count(), 2);
     await comparison.getByText("Changed: object distance", { exact: true }).waitFor();
     await comparison.getByText("Real, upside-down image at 40 cm · screen in focus", { exact: true }).waitFor();
+    await click("Complete investigation");
+    await visible("Choose a lens above.");
     await page.getByRole("radio", { name: "+12 cm lens", exact: true }).check();
+    await visible("Pick one takeaway above.");
     await page.getByRole("radio", { name: "Distance changes the image", exact: true }).check();
     assert.equal(await page.locator("textarea").count(), 0);
     await click("Complete investigation");
+    const completed = page.getByRole("heading", { name: "Investigation complete", exact: true });
+    await completed.waitFor();
+    assert.equal(await completed.evaluate(el => el === document.activeElement), true);
     await visible("24 cm > 12 cm · Real image");
     await page.getByRole("link", { name: "Try the related Olympiad question →" }).click();
     await page.getByRole("heading", { name: "The elusive screen image" }).waitFor();
