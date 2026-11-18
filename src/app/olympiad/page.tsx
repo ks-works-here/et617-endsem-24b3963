@@ -37,6 +37,8 @@ export default function Arena() {
   const [now, setNow] = useState(0);
   const openedAt = useRef(0);
   const trackedOpen = useRef(false);
+  const solutionPanel = useRef<HTMLElement>(null);
+  const focusSolution = useRef(false);
   const challenge = state.challenge;
   const running = !!challenge && !challenge.ended;
   const question = questions.find(q => q.id === state.active);
@@ -47,6 +49,12 @@ export default function Arena() {
   const correctChoice = graded && selection === question?.correct;
   const remaining = challenge?.deadline ? Math.max(0, Math.ceil((challenge.deadline - now) / 1000)) : null;
   const update = (patch: Partial<typeof initial>) => write("arena", { ...state, ...patch });
+
+  useEffect(() => {
+    if (!record.revealed || !focusSolution.current) return;
+    focusSolution.current = false;
+    solutionPanel.current?.focus();
+  }, [record.revealed]);
 
   useEffect(() => {
     if (trackedOpen.current) return;
@@ -96,6 +104,15 @@ export default function Arena() {
     if (!question) return;
     update({ records: { ...state.records, [question.id]: { ...record, ...patch } } });
     questionEvent(event, question, undefined, patch);
+  }
+  function toggleSolution() {
+    if (!question) return;
+    if (record.revealed) {
+      update({ records: { ...state.records, [question.id]: { ...record, revealed: false } } });
+      return;
+    }
+    focusSolution.current = true;
+    mark("solution_revealed", { revealed: true });
   }
   function filter(key: "category" | "level", value: number) {
     update({ [key]: value });
@@ -156,7 +173,7 @@ export default function Arena() {
       <section className="panel workspace">
         {question ? <><div className="section-head"><p className="eyebrow">LEVEL {question.level + 1} · {levels[question.level]} · {question.format}</p><button aria-pressed={record.marked} onClick={() => mark("question_bookmarked", { marked: !record.marked })}>{record.marked ? "Remove bookmark" : "Bookmark"}</button></div>
         <h2>{question.title}</h2><p>{question.prompt}</p>
-        {question.diagram && <RayBench settings={question.diagram} reveal={record.revealed && !running} rayCount={question.id === "r1" && (!record.revealed || running) ? 1 : 2} screen={false} />}
+        {question.diagram && <RayBench settings={question.diagram} reveal={record.revealed} rayCount={question.id === "r1" && !record.revealed ? 1 : 2} screen={false} />}
         <form onSubmit={e => { e.preventDefault(); submit(); }}>
           <fieldset className="answer-choices"><legend>Choose one answer</legend>{question.options.map((option, i) => <label className="radio" data-result={graded && selection === i ? correctChoice ? "correct" : "incorrect" : undefined} key={option}>
             <input required type="radio" name={question.id} checked={selection === i} onChange={() => {
@@ -169,9 +186,13 @@ export default function Arena() {
           <button className="primary" type="submit" disabled={!question.options[selection]}>Submit Answer</button>
         </form>
         {graded && !correctChoice && question.feedback?.[selection] && <small className="answer-tip">{question.feedback[selection]}</small>}
-        <div className="actions"><button disabled={record.hints >= question.hints.length} onClick={() => mark("hint_accessed", { hints: record.hints + 1 })}>Next hint ({record.hints}/{question.hints.length})</button><button disabled={running || record.revealed} onClick={() => mark("solution_revealed", { revealed: true })}>Show Solution</button></div>
+        <div className="actions"><button disabled={record.hints >= question.hints.length} onClick={() => mark("hint_accessed", { hints: record.hints + 1 })}>Next hint ({record.hints}/{question.hints.length})</button><button aria-expanded={record.revealed} aria-controls="worked-solution" onClick={toggleSolution}>{record.revealed ? "Hide Solution" : "Show Solution"}</button></div>
+        <section id="worked-solution" ref={solutionPanel} className="feedback" aria-labelledby="worked-solution-title" hidden={!record.revealed} tabIndex={-1}>
+          <h3 id="worked-solution-title">Worked solution</h3>
+          <p><strong>Answer</strong> · {question.options[question.correct]}</p>
+          <ol>{question.solution.map(step => <li key={step}>{step}</li>)}</ol>
+        </section>
         {record.hints > 0 && <ol>{question.hints.slice(0, record.hints).map(hint => <li key={hint}>{hint}</li>)}</ol>}
-        {!running && record.revealed && <div className="feedback"><h3>Worked solution</h3><ol>{question.solution.map(step => <li key={step}>{step}</li>)}</ol></div>}
         </> : <p>Select a question or start a challenge to begin.</p>}
       </section>
     </div>

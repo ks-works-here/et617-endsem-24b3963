@@ -104,6 +104,11 @@ async function main() {
     await click("Next hint (0/2)");
     await click("Show Solution");
     await visible("Worked solution");
+    assert.equal(await page.locator("#worked-solution").evaluate(el => el === document.activeElement), true);
+    await click("Hide Solution");
+    await page.locator("#worked-solution").waitFor({ state: "hidden" });
+    await click("Show Solution");
+    await visible("Worked solution");
     assert.equal(await page.locator(".question-list button").count(), 30);
     await page.getByLabel("Category", { exact: false }).selectOption("2");
     await page.getByLabel("Difficulty", { exact: false }).selectOption("0");
@@ -140,6 +145,9 @@ async function main() {
       assert.equal(await page.locator(".workspace textarea, .workspace input:not([type=radio])").count(), 0);
     }
     await click("Mixed Challenge");
+    if (await page.getByRole("button", { name: "Hide Solution", exact: true }).count()) await click("Hide Solution");
+    await click("Show Solution");
+    await visible("Worked solution");
     await click("Next question / skip");
     await page.reload();
     assert.equal((await read("arena")).challenge.index, 1);
