@@ -57,6 +57,12 @@ summary { cursor: pointer; }
 pre { font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .event-list,.question-list { max-height: 30rem; overflow: auto; }
 .question-list button { display: block; text-align: left; width: 100%; margin-bottom: .45rem; }
+.question-statuses { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; margin-top: .25rem; }
+.question-status { display: inline-flex; align-items: center; gap: .3rem; padding: .08rem .4rem; border-radius: .35rem; font-weight: 650; }
+.status-bookmarked, .bookmark-toggle[aria-pressed="true"] { color: #ffe2a7; background: #362915; border-color: #f4c770; }
+.status-solved { color: #c4f7dc; background: #12352c; }
+.status-retry { color: #ffd4dc; background: #391f2a; }
+.bookmark-icon { display: inline-block; flex: none; width: .65em; height: .85em; background: currentColor; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%); }
 button[aria-pressed=true] { border-color: var(--accent); }
 .radio { display: flex; gap: .55rem; align-items: baseline; }
 .lab-hero { padding-block: clamp(1.3rem, 3vw, 2.6rem); background: radial-gradient(ellipse at 85% 0%, #244578, transparent 65%), linear-gradient(125deg, #102938, #151a38 75%); }

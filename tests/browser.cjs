@@ -94,12 +94,18 @@ async function main() {
     await choose("The screen is too close; the rays already converge on the far side.");
     await click("Submit Answer");
     await page.locator('.answer-choices [data-result="incorrect"]').getByText("Incorrect", { exact: false }).waitFor();
+    await page.locator(".question-list .status-retry").filter({ hasText: "Needs retry" }).waitFor();
     await click("Weak Area Revision");
     await click("End challenge");
     await page.getByRole("button", { name: /The elusive screen image/ }).click();
     await choose("The rays diverge; the eye focuses them, while the screen receives no converging bundle.");
     await click("Submit Answer");
     await page.locator('.answer-choices [data-result="correct"]').getByText("Correct", { exact: false }).waitFor();
+    await click("Bookmark");
+    await page.locator(".question-list .status-bookmarked").filter({ hasText: "Bookmarked" }).waitFor();
+    await page.locator(".question-list .status-solved").filter({ hasText: "Solved" }).waitFor();
+    await click("Remove bookmark");
+    assert.equal(await page.locator(".question-list .status-bookmarked").count(), 0);
     await click("Bookmark");
     await click("Next hint (0/2)");
     await click("Show Solution");

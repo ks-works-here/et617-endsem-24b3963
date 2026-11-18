@@ -154,9 +154,19 @@ export default function Arena() {
     {running && <div className="actions"><button onClick={() => advance()}>Next question / skip</button><button onClick={() => advance(true)}>End challenge</button></div>}</section>
     <div className="arena-grid">
       {!running && <section className="panel"><h2>Question bank</h2><div className="filters"><label>Category<select value={state.category} onChange={e => filter("category", +e.target.value)}><option value={-1}>All categories</option>{categories.map((item, i) => <option key={item} value={i}>{item}</option>)}</select></label><label>Difficulty<select value={state.level} onChange={e => filter("level", +e.target.value)}><option value={-1}>All levels</option>{levels.map((item, i) => <option key={item} value={i}>Level {i + 1} · {item}</option>)}</select></label><label>Show<select value={scope} onChange={e => setScope(e.target.value)}>{["All questions", "Bookmarked", "Unsolved", "Needs retry"].map(item => <option key={item}>{item}</option>)}</select></label></div>
-      <div className="question-list">{visible.length === 0 && <p>No questions match these filters.</p>}{visible.map(q => <button key={q.id} aria-pressed={q.id === state.active} onClick={() => open(q)}><span>{q.title}</span><small>{levels[q.level]}{state.records[q.id]?.solved ? " · Solved" : ""}{state.records[q.id]?.marked ? " · Bookmarked" : ""}</small></button>)}</div></section>}
+      <div className="question-list">{visible.length === 0 && <p>No questions match these filters.</p>}{visible.map(q => {
+        const progress = state.records[q.id];
+        return <button key={q.id} aria-pressed={q.id === state.active} onClick={() => open(q)}>
+          <span>{q.title}</span>
+          <small className="question-statuses">
+            <span>{levels[q.level]}</span>
+            {progress?.marked && <span className="question-status status-bookmarked"><span className="bookmark-icon" aria-hidden="true" />Bookmarked</span>}
+            {progress?.solved ? <span className="question-status status-solved">✓ Solved</span> : !!progress?.misses && <span className="question-status status-retry">↻ Needs retry</span>}
+          </small>
+        </button>;
+      })}</div></section>}
       <section className="panel workspace">
-        {question ? <><div className="section-head"><p className="eyebrow">LEVEL {question.level + 1} · {levels[question.level]} · {question.format}</p><button aria-pressed={record.marked} onClick={() => mark("question_bookmarked", { marked: !record.marked })}>{record.marked ? "Remove bookmark" : "Bookmark"}</button></div>
+        {question ? <><div className="section-head"><p className="eyebrow">LEVEL {question.level + 1} · {levels[question.level]} · {question.format}</p><button className="bookmark-toggle" aria-pressed={record.marked} onClick={() => mark("question_bookmarked", { marked: !record.marked })}><span className="bookmark-icon" aria-hidden="true" />{record.marked ? "Remove bookmark" : "Bookmark"}</button></div>
         <h2>{question.title}</h2><p>{question.prompt}</p>
         {question.diagram && <RayBench settings={question.diagram} reveal={record.revealed} rayCount={question.id === "r1" && !record.revealed ? 1 : 2} screen={false} />}
         <form onSubmit={e => { e.preventDefault(); submit(); }}>
