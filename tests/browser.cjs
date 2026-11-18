@@ -18,6 +18,12 @@ async function main() {
     const visible = text => page.getByText(text, { exact: true }).waitFor();
     const read = key => page.evaluate(key => JSON.parse(localStorage.getItem("optics." + key) || "null"), key);
     await page.goto(base);
+    await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Exam Card" }).click();
+    await page.getByRole("heading", { name: "Personal Exam Card" }).waitFor();
+    await visible("24b3963");
+    await visible("P5 - T8 - L6 - C4");
+    await visible("Resumable 10-minute learning sessions");
+    await page.getByRole("link", { name: "The Optics Lab" }).click();
     await page.getByRole("link", { name: "Open investigation →" }).click();
     await page.locator("#lens-theory summary").click();
     await page.getByRole("heading", { name: "Follow the rays" }).waitFor();

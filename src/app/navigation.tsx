@@ -29,5 +29,5 @@ export default function Navigation() {
     const session = appSession();
     if (!getEventsBySession(session).some(e => e.event_type === "application_opened")) track("application_opened", session, "app", "navigation");
   }, []);
-  return <header className="topbar"><Link className="brand" href="/"><span aria-hidden="true">◈</span> The Optics Lab</Link><nav aria-label="Main navigation"><Link href="/lab">Laboratory</Link><Link href="/olympiad">Olympiad Arena</Link><Link href="/analytics">Analytics</Link></nav></header>;
+  return <header className="topbar"><Link className="brand" href="/"><span aria-hidden="true">◈</span> The Optics Lab</Link><nav aria-label="Main navigation"><Link href="/lab">Laboratory</Link><Link href="/olympiad">Olympiad Arena</Link><Link href="/analytics">Analytics</Link><Link href="/exam-card">Exam Card</Link></nav></header>;
 }
